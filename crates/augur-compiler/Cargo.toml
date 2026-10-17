@@ -1,0 +1,24 @@
+[package]
+autoexamples = false
+name = "augur-compiler"
+version = "0.0.1-alpha"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[features]
+default = []
+cuda = ["augur-backend/cuda", "augur-exec/cuda"]
+
+[dependencies]
+augur-core = { path = "../augur-core" }
+augur-backend = { path = "../augur-backend" }
+augur-graph = { path = "../augur-graph" }
+augur-kernel-api = { path = "../augur-kernel-api" }
+augur-exec = { path = "../augur-exec" }
+augur-kernels = { path = "../augur-kernels" }
+sha2 = "0.10.9"
+
+[dev-dependencies]
+augur-formats = { path = "../augur-formats" }
+augur-repack = { path = "../augur-repack" }
+augur-reference = { path = "../augur-reference" }

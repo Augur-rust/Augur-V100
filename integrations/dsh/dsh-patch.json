@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "package": "@deepseek-ai/dsh-llm-pi-ai",
+  "packageVersion": "0.2.1-alpha.2",
+  "before_sha256": "acc61ec5df9878094e078c25bed6b49eabd26467378fe6476141bfda024600fa",
+  "after_sha256": "30a478de3b1b69e2f8e66cde1e2f716573b3c6392a4825ab09604f4e0d6a6b1a",
+  "prefix": "function coalesceAdjacentUsers(context) {\n  const messages = [];\n  let changed = false;\n  for (const message of context.messages) {\n    const previous = messages.at(-1);\n    if (previous?.role === \"user\" && message.role === \"user\") {\n      const content = typeof previous.content === \"string\" && typeof message.content === \"string\" ? previous.content + \"\\n\\n\" + message.content : [\n        ...typeof previous.content === \"string\" ? [{ type: \"text\", text: previous.content }] : previous.content,\n        { type: \"text\", text: \"\\n\\n\" },\n        ...typeof message.content === \"string\" ? [{ type: \"text\", text: message.content }] : message.content\n      ];\n      messages[messages.length - 1] = { ...previous, content };\n      changed = true;\n    } else {\n      messages.push(message);\n    }\n  }\n  return changed ? { ...context, messages } : context;\n}\nfunction coalesceOpenAIUsers(payload) {\n  if (typeof payload !== \"object\" || payload === null || !(\"messages\" in payload) || !Array.isArray(payload.messages)) return payload;\n  const messages = [];\n  let changed = false;\n  for (const raw of payload.messages) {\n    if (typeof raw !== \"object\" || raw === null || Array.isArray(raw)) return payload;\n    const message = raw;\n    const previous = messages.at(-1);\n    if (previous?.role === \"user\" && message.role === \"user\" && Object.keys(previous).every((key) => key === \"role\" || key === \"content\") && Object.keys(message).every((key) => key === \"role\" || key === \"content\")) {\n      const a = previous.content, b = message.content;\n      if (typeof a === \"string\" && typeof b === \"string\") {\n        messages[messages.length - 1] = { role: \"user\", content: a + \"\\n\\n\" + b };\n      } else if ((typeof a === \"string\" || Array.isArray(a)) && (typeof b === \"string\" || Array.isArray(b))) {\n        messages[messages.length - 1] = { role: \"user\", content: [\n          ...typeof a === \"string\" ? [{ type: \"text\", text: a }] : a,\n          { type: \"text\", text: \"\\n\\n\" },\n          ...typeof b === \"string\" ? [{ type: \"text\", text: b }] : b\n        ] };\n      } else return payload;\n      changed = true;\n    } else messages.push(message);\n  }\n  return changed ? { ...payload, messages } : payload;\n}\n\n",
+  "replacements": [
+    [
+      "\tthinkingBudgets,\n\tcacheRetention:",
+      "\tthinkingBudgets,\n\tcoalesceAdjacentUserMessages: z.boolean(),\n\tcacheRetention:"
+    ],
+    [
+      "\t\t\t\tconst iterator = toStreamChunks(snapshot.models.streamSimple(model, context, {",
+      "\t\t\t\tconst providerContext = profile.coalesceAdjacentUserMessages ? coalesceAdjacentUsers(context) : context;\n\t\t\t\tconst iterator = toStreamChunks(snapshot.models.streamSimple(model, providerContext, {"
+    ],
+    [
+      "\t\t\t\t\t...profileOptions(profile, reasoning, apiKey),",
+      "\t\t\t\t\t...profileOptions(profile, reasoning, apiKey),\n\t\t\t\t\t...(profile.coalesceAdjacentUserMessages && model.api === \"openai-completions\" ? {onPayload: coalesceOpenAIUsers} : {}),"
+    ]
+  ],
+  "previous_patch_sha256": "544bd265eb8837602436bdf08effb25571b41a27fa1811d2f82a16a733bccb14"
+}

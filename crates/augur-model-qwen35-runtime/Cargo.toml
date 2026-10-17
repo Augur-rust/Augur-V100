@@ -1,0 +1,182 @@
+[package]
+name = "augur-model-qwen35-runtime"
+version = "0.0.1-alpha"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+autoexamples = false
+
+[features]
+qwen35-augur-vision = ["qwen35-augur-http", "augur-backend/qwen35-vision-affine"]
+# Explicit speed-first HTTP profile, rotated decode, resident (inactive) DFlash.
+qwen35-augur-http = ["qwen35-augur-large-prefill"]
+# Large QUASAR GEMM/GDN batches; Flash Attention remains tiled512.
+qwen35-augur-large-prefill = ["qwen35-augur-dflash-bridge", "augur-backend/qwen35-augur-large-prefill"]
+default = []
+# Compile-time source archive identity only; no product authority.
+qwen35-frozen-build = []
+# Bounded CPU transfer/local-store contract; no CUDA owner admission by itself.
+qwen35-session-checkpoint = []
+cuda = ["dep:augur-backend", "dep:augur-core", "augur-backend/cuda"]
+# Bounded encoder only; no language embedding/MRoPE ingress or product claim.
+qwen35-linear-step = ["cuda", "augur-backend/qwen35-linear-step"]
+qwen35-linear-attention = ["qwen35-linear-step"]
+qwen35-linear-layer = ["qwen35-linear-attention"]
+qwen35-full-attention = ["cuda"]
+qwen35-mixed-prefix-cuda = ["qwen35-linear-layer", "qwen35-full-attention"]
+qwen35-device-resident-handoff = ["qwen35-mixed-prefix-cuda"]
+qwen35-full-target-cuda = ["qwen35-device-resident-handoff"]
+qwen35-bf16-warp-row = [
+    "qwen35-full-target-cuda",
+    "augur-backend/m306-k17-bf16-warp-row",
+]
+qwen35-q8-packed-load = [
+    "qwen35-full-target-cuda",
+    "augur-backend/qwen35-q8-packed-load",
+]
+qwen35-native-f16-scale = [
+    "qwen35-full-target-cuda",
+    "augur-backend/qwen35-native-f16-scale",
+]
+qwen35-nvfp4-fused-lb10 = [
+    "qwen35-full-target-cuda",
+    "augur-backend/qwen35-nvfp4-fused-lb10",
+]
+qwen35-gdn-warp-row = [
+    "qwen35-full-target-cuda",
+    "augur-backend/qwen35-gdn-warp-row",
+]
+qwen35-fused-head-norm-rope = [
+    "qwen35-full-target-cuda",
+    "augur-backend/qwen35-fused-head-norm-rope",
+]
+qwen35-warp-full-attention = [
+    "qwen35-full-target-cuda",
+    "augur-backend/qwen35-warp-full-attention",
+]
+qwen35-full-attention-parallel-exp = [
+    "qwen35-warp-full-attention",
+    "augur-backend/qwen35-full-attention-parallel-exp",
+]
+qwen35-grouped-gqa-online-softmax = [
+    "qwen35-full-target-cuda",
+    "augur-backend/qwen35-grouped-gqa-online-softmax",
+]
+qwen35-kv8-full-attention = [
+    "qwen35-grouped-gqa-online-softmax",
+    "augur-backend/qwen35-kv8-full-attention",
+]
+qwen35-kv8-batched-attention = [
+    "qwen35-kv8-full-attention",
+    "augur-backend/qwen35-kv8-batched-attention",
+]
+qwen35-kv8-chunk-prefill = [
+    "qwen35-batched-prefill-handoff",
+    "qwen35-kv8-full-attention",
+    "augur-backend/qwen35-kv8-chunk-prefill",
+]
+qwen35-split-rmsnorm = [
+    "qwen35-full-target-cuda",
+    "augur-backend/qwen35-split-rmsnorm",
+]
+qwen35-fused-ffn-swiglu = [
+    "qwen35-full-target-cuda",
+    "augur-backend/qwen35-fused-ffn-swiglu",
+]
+qwen35-autoregressive-cuda = [
+    "qwen35-bf16-warp-row",
+    "qwen35-q8-packed-load",
+    "qwen35-gdn-warp-row",
+    "qwen35-fused-head-norm-rope",
+    "qwen35-warp-full-attention",
+    "qwen35-fused-ffn-swiglu",
+]
+qwen35-device-token-handoff = [
+    "qwen35-autoregressive-cuda",
+    "augur-backend/qwen35-device-token-handoff",
+]
+qwen35-output-head-acceptance = [
+    "cuda",
+    "augur-backend/qwen35-device-token-handoff",
+]
+qwen35-zero-copy-layer-handoff = ["qwen35-autoregressive-cuda"]
+qwen35-zero-copy-native-f16-scale = [
+    "qwen35-zero-copy-layer-handoff",
+    "qwen35-device-token-handoff",
+    "qwen35-native-f16-scale",
+]
+qwen35-prefill-cublas = [
+    "qwen35-autoregressive-cuda",
+    "augur-backend/qwen35-prefill-cublas",
+]
+qwen35-batched-prefill-handoff = [
+    "qwen35-prefill-cublas",
+    "qwen35-zero-copy-native-f16-scale",
+    "qwen35-nvfp4-fused-lb10",
+    "qwen35-full-attention-parallel-exp",
+    "qwen35-split-rmsnorm",
+]
+qwen35-draft-target-verify = ["qwen35-kv8-chunk-prefill", "qwen35-output-head-acceptance"]
+qwen35-raw-committed-state = ["qwen35-draft-target-verify"]
+qwen35-draft-private-state = ["qwen35-draft-target-verify"]
+# Separate-process research replay; never activates the request capture path.
+qwen35-draft-private-capture-only = ["qwen35-draft-private-state"]
+# Bounded 8K-input / 1024-output sparse later-state diagnostic, default OFF.
+qwen35-draft-private-long = ["qwen35-draft-private-capture-only"]
+# Diagnostic policy bridge: initialized committed ranges only, never shrinks KV allocation.
+qwen35-optimized-state-bridge = ["qwen35-draft-private-long", "qwen35-raw-committed-state"]
+# Diagnostic same-stream event envelopes; explicit environment switch also required.
+qwen35-draft-top16-batch = ["qwen35-draft-target-verify"]
+# Explicit state/HTTP validation lane; default paths and publication rules unchanged.
+qwen35-top16-state-client = ["qwen35-draft-top16-batch", "qwen35-optimized-state-bridge"]
+# Serial resident text-service research. No default path or qualification change.
+qwen35-resident-text-service = ["qwen35-draft-target-verify"]
+# Native same-owner append research only; HTTP continuation remains closed.
+qwen35-session-continuation = ["qwen35-resident-text-service"]
+# Separate real32K session/oracle admission; no default or old8K gate expansion.
+qwen35-session-context32-audit = ["qwen35-session-continuation", "qwen35-draft-private-state"]
+# Separate real64K session/oracle admission; no default or old8K/32K gate expansion.
+qwen35-session-context64-audit = ["qwen35-session-continuation", "qwen35-draft-private-state"]
+# Real194560-input native oracle, explicit only; preserves full128+6 verify reserve.
+qwen35-session-near192-audit = ["qwen35-session-continuation", "qwen35-draft-private-state"]
+# Explicit target-only research binary, not a default arithmetic-policy change.
+qwen35-target-split-rope = ["qwen35-draft-target-verify", "augur-backend/qwen35-target-split-rope", "augur-model-qwen35/target-split-rope"]
+# CPU-only identity/lifetime contract for a future opt-in CUDA Graph owner.
+# This deliberately has no dependency and is not part of any default product
+# path; enabling it does not capture or launch a graph.
+# Explicit QUASAR safetensors token-session owner; no legacy defaults change.
+qwen35-augur-session = ["qwen35-target-split-rope", "qwen35-kv8-batched-attention", "qwen35-session-checkpoint"]
+# Opt-in device feature capture admission; does not enable drafting/publication.
+qwen35-augur-dflash-capture = ["qwen35-augur-session"]
+# Explicit QUASAR/Q8 draft bridge; no HTTP default or speculative commit promotion.
+qwen35-augur-dflash-bridge = ["qwen35-augur-dflash-capture"]
+
+[build-dependencies]
+serde_json = "1.0.150"
+sha2 = "0.10.9"
+
+[dependencies]
+augur-model-qwen35 = { path = "../augur-model-qwen35" }
+augur-backend = { path = "../augur-backend", default-features = false, optional = true }
+augur-core = { path = "../augur-core", optional = true }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+sha2 = "0.10.9"
+half = "2.7.1"
+tokenizers = { version = "0.22.1", default-features = false, features = ["onig"] }
+
+[[example]]
+name = "qwen35_q8_draft_target_stream_cuda"
+required-features = ["qwen35-draft-target-verify"]
+
+[[example]]
+name = "qwen35_resident_session_http"
+required-features = ["qwen35-session-continuation"]
+
+
+[[example]]
+name = "augur_session_jsonl"
+required-features = ["qwen35-augur-session"]
+
+[[example]]
+name = "augur_session_http"

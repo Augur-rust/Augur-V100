@@ -1,0 +1,11 @@
+{
+  "name": "@augur/dsh-reasoning-recovery",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./index.mjs",
+  "peerDependencies": {
+    "@deepseek-ai/dsh-llm": "*",
+    "zod": "*"
+  }
+}

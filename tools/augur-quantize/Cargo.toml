@@ -1,0 +1,19 @@
+[package]
+name = "augur-quantize"
+version = "0.0.1-alpha"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace]
+
+[dependencies]
+augur-core = { path = "../../crates/augur-core" }
+augur-formats = { path = "../../crates/augur-formats" }
+augur-model-qwen35 = { path = "../../crates/augur-model-qwen35" }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+sha2 = "0.10.9"
+
+[profile.release]
+opt-level = 3

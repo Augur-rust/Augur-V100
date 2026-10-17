@@ -1,0 +1,29 @@
+#pragma code_page(65001)
+1 ICON "augur.ico"
+
+1 VERSIONINFO
+FILEVERSION 0,0,1,0
+PRODUCTVERSION 0,0,1,0
+FILEFLAGSMASK 0x3fL
+FILEFLAGS 0x2L
+FILEOS 0x40004
+FILETYPE 0x1
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "080404B0"
+    BEGIN
+      VALUE "CompanyName", "Augur contributors"
+      VALUE "FileDescription", "Augur 启动服务"
+      VALUE "FileVersion", "0.0.1-alpha"
+      VALUE "ProductName", "Augur"
+      VALUE "ProductVersion", "0.0.1-alpha"
+      VALUE "OriginalFilename", "启动服务.exe"
+      VALUE "LegalCopyright", "MIT OR Apache-2.0"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x804, 1200
+  END
+END

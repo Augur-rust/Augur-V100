@@ -1,0 +1,9 @@
+[package]
+autoexamples = false
+name = "augur-kernel-api"
+version = "0.0.1-alpha"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+augur-core = { path = "../augur-core" }

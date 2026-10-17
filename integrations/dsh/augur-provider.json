@@ -1,0 +1,42 @@
+{
+  "apiKeyEnv": "AUGUR_LOCAL_API_KEY",
+  "displayName": "Augur · QUASAR 27B B8 (Recommended)",
+  "api": "openai-completions",
+  "baseURL": "http://127.0.0.1:8294/v1",
+  "models": [
+    {
+      "id": "quasar-27b",
+      "name": "QUASAR 27B · Fixed B8",
+      "contextWindow": 262144,
+      "maxTokens": 249036,
+      "input": [
+        "text",
+        "image"
+      ],
+      "reasoningEfforts": {
+        "off": null,
+        "low": "low",
+        "high": "medium",
+        "xhigh": "xhigh"
+      }
+    }
+  ],
+  "compat": {
+    "supportsStore": false,
+    "supportsDeveloperRole": false,
+    "supportsReasoningEffort": true,
+    "supportsUsageInStreaming": true,
+    "supportsStrictMode": false,
+    "maxTokensField": "max_completion_tokens",
+    "thinkingFormat": "qwen",
+    "requiresReasoningContentOnAssistantMessages": false,
+    "requiresAssistantAfterToolResult": true,
+    "requiresToolResultName": false
+  },
+  "reasoning": "off",
+  "transport": "sse",
+  "timeoutMs": 14400000,
+  "streamIdleTimeoutMs": 600000,
+  "maxRequestImageBytes": 201326592,
+  "coalesceAdjacentUserMessages": true
+}

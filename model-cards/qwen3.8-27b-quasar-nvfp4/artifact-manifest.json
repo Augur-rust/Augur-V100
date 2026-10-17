@@ -1,0 +1,103 @@
+{
+  "schema": "augur.model-card-manifest",
+  "schema_version": 1,
+  "role": "documentation_only_not_runtime_admission",
+  "repository_name": "Augur",
+  "model_id": "qwen3.8-27b-quasar-nvfp4",
+  "product_api_alias": "quasar-27b",
+  "scope": "Only currently supported target; DFlash is a paired accelerator, not another supported target.",
+  "source": {
+    "repo_id": "QUASAR-QAT/Qwen3.8-27B-QUASAR-NVFP4",
+    "recorded_revision": "d9af17e20644c5b9a6d66dff1d14f349e2e61b05",
+    "base_model_declared_by_upstream": "Qwen/Qwen3.8-27B",
+    "license_declared_by_upstream": "Apache-2.0",
+    "provenance_record": "docs/public/AUGUR_MODEL_SOURCES.md",
+    "immutable_upstream_redistribution_review_complete": false
+  },
+  "target": {
+    "format": "original NVFP4 safetensors",
+    "lm_head": "original BF16",
+    "config_sha256": "4a602978ea802d91171d3c5a8b99c5a23900ed474289133d9d0193a35ce3206b",
+    "index_sha256": "eee26dbb894969febd90ea21f29c10adc660267c47eeff63e08ef45611761046",
+    "shards": {
+      "model-00001-of-00005.safetensors": "54d83c1d36631de231876217a8e0c2483eccee8746369a482b79442bdfc5d958",
+      "model-00002-of-00005.safetensors": "bb5c367ac5ba8b2ab68f07b9719f1c3ac528ada98c26523be6e2c07f82e299bc",
+      "model-00003-of-00005.safetensors": "6bfa358557579f538682984a667e243a72ab361d50c583fbf06ba3148653fda1",
+      "model-00004-of-00005.safetensors": "260822c66711e7fbd9df0f96b0da0b54b01c2bd77612911885b33f88f18003d7",
+      "model-00005-of-00005.safetensors": "08e4c9bcd8ca371240cae47c98e5e1a499a14caeab5ee2ca4a0a07c24c69a24b"
+    },
+    "tokenizer_sha256": "0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3",
+    "tokenizer_config_sha256": "b11349aafa7cdc6a320767cf7ceb29ed82f7eda5d65e8e0819e76f0ce947bf27",
+    "generation_config_sha256": "b8eb74d15e0a56623d00ccd14950a4bb87fabbf84b5cc030dcc904b899fb1eb5",
+    "chat_template_sha256": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041",
+    "identity_basis": "Existing admitted manifest; small metadata rehashed for this card, large weight shards not rehashed in this documentation pass."
+  },
+  "architecture": {
+    "parameter_size_label": "27B",
+    "config_model_type": "qwen3_5",
+    "config_architecture": "Qwen3_5ForConditionalGeneration",
+    "num_hidden_layers": 64,
+    "gdn_layers": 48,
+    "full_attention_layers": 16,
+    "hidden_size": 5120,
+    "num_attention_heads": 24,
+    "num_key_value_heads": 4,
+    "vocab_size": 248320
+  },
+  "runtime": {
+    "platform": "Windows x64 / MSVC / CUDA SM70",
+    "tested_hardware": "Tesla PG503-216, SM70, 32 GiB, single GPU, Windows",
+    "feature": "augur-model-qwen35-runtime/qwen35-augur-vision",
+    "text_profile": "quasar_b4352_rotated_decode_http_v1",
+    "dflash_profile": "quasar_b4352_dflash_b8_packed_http_v1",
+    "capacity_tokens": 262144,
+    "max_completion_tokens": 249036,
+    "prefill_batch": 4352,
+    "selected_dflash_mode": "fixed_b8",
+    "generation": "greedy",
+    "vision_default": "on_demand",
+    "vision_opt_in": "auto",
+    "thinking_enabled_by_default": false,
+    "thinking_language_when_enabled": "en",
+    "selectable_capacity_tokens": [
+      8192,
+      32768,
+      65536,
+      131072,
+      196608,
+      262144
+    ]
+  },
+  "draft": {
+    "source_repo_id": "z-lab/Qwen3.8-27B-DFlash2",
+    "source_safetensors_sha256": "67fc76d68dc5a9415511a4f394ef744d67510cd20e93b37cc2cc7d28e4bab65c",
+    "config_sha256": "873e3556509b0da06e29654ba00d4944888d4b5e8a33afde25f7eb27d321e980",
+    "filename": "model-q8_0.gguf",
+    "bytes": 2060264832,
+    "sha256": "33d9842166866dae79eeff0026bf90991f438ef0aaa2578429d950f536b0d797",
+    "conversion": "Rust safetensors to Q8_0 + embedded FP32 gate",
+    "q8_0_matrices": 48,
+    "fp32_tensors": 33,
+    "selector_gate": {
+      "shape": [
+        256,
+        5120
+      ],
+      "dtype": "FP32",
+      "folded_factor": 0.45,
+      "runtime_scale": 1,
+      "sha256": "0bcb694a4e84aa304d888829742fdef92941771ac5e97917ca5dc4388f6821c7"
+    }
+  },
+  "evaluation": {
+    "counters": "docs/public/AUGUR_ENGLISH_THINKING_GATE045_20261015.json",
+    "report": "docs/AUGUR_EMBEDDED_GATE045_ENGLISH_ACCEPTANCE_20261015.md",
+    "evaluation_build_receipt_sha256": "2fe739d46f48c0fb571e2e1c8b94e7134e71a94186acf22bdc7fcb8bf9bdd621",
+    "scope": "Recorded local checks on their bound historical build; not a new qualification of this renamed source."
+  },
+  "distribution": {
+    "weights_included": false,
+    "published": false,
+    "runtime_admission_manifest_included": true
+  }
+}

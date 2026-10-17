@@ -1,0 +1,17 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/augur-backend",
+    "crates/augur-compiler",
+    "crates/augur-core",
+    "crates/augur-cuda-sys",
+    "crates/augur-exec",
+    "crates/augur-formats",
+    "crates/augur-graph",
+    "crates/augur-kernel-api",
+    "crates/augur-kernels",
+    "crates/augur-model-qwen35",
+    "crates/augur-model-qwen35-runtime",
+    "crates/augur-reference",
+    "crates/augur-repack",
+]

@@ -1,0 +1,4009 @@
+{
+  "schema": "quasar-gate045-english-http-evidence-v1",
+  "date": "2026-10-15",
+  "hardware": "Tesla PG503-216, SM70, 32 GiB, single GPU, Windows",
+  "settings": {
+    "CQ_QUASAR_HTTP_DFLASH": "batched8",
+    "CQ_QUASAR_HTTP_DFLASH_PLAN": "park",
+    "CQ_QUASAR_DFLASH_GATE": "fixed_b8",
+    "CQ_QUASAR_DFLASH_TOPK": "batch8",
+    "CQ_QUASAR_DFLASH_SELECTOR_PATH": "greedy",
+    "CQ_QUASAR_DFLASH_SELECTOR_SCALE": "1",
+    "CQ_QUASAR_DFLASH_PINNED_D2H": "0",
+    "CQ_QUASAR_DFLASH_GPU_BILL": "0",
+    "CQ_QUASAR_DFLASH_VERIFY_BILL": "0",
+    "CQ_QUASAR_B1_LINEAR_GRAPH": "1",
+    "CQ_QUASAR_B1_FULL_GRAPH": "1",
+    "CQ_QUASAR_B1_HEAD_GRAPH": "1",
+    "CQ_QUASAR_HTTP_DECODE_ATTENTION": "gqa8_planar",
+    "CQ_QUASAR_CACHE_RESTORE_WORKERS": "8",
+    "CQ_QUASAR_CACHE_RESTORE_SCHEDULE": "pipeline",
+    "CQ_QUASAR_SHARD_WORKERS": "5",
+    "CQ_QUASAR_BF16_STARTUP": "streamed",
+    "CQ_QUASAR_QPN_STARTUP": "direct",
+    "CQ_QUASAR_HTTP_FINISH": "receipt_ref_v3",
+    "CQ_QUASAR_HTTP_DECODE": "bytelevel_v2",
+    "CQ_QUASAR_DFLASH_ENGLISH_GATE": "global_gate045_v1",
+    "CQ_QUASAR_DFLASH_SELECTOR_GATE_ACCUMULATION": "fp32"
+  },
+  "workloads": [
+    {
+      "id": "holdout_python_histogram",
+      "family": "code",
+      "language": "python",
+      "function": "ordered_counts",
+      "check_input_mutation": true,
+      "prompt": "Write Python ordered_counts(values). Return [value,count] pairs for distinct strings in first appearance order. Empty input returns []. Do not mutate input. Return one complete code block, no imports or examples.",
+      "tests": [
+        {
+          "args": [
+            []
+          ],
+          "expected": []
+        },
+        {
+          "args": [
+            [
+              "b",
+              "a",
+              "b",
+              "c",
+              "a",
+              "b"
+            ]
+          ],
+          "expected": [
+            [
+              "b",
+              3
+            ],
+            [
+              "a",
+              2
+            ],
+            [
+              "c",
+              1
+            ]
+          ]
+        },
+        {
+          "args": [
+            [
+              "你",
+              "好",
+              "你"
+            ]
+          ],
+          "expected": [
+            [
+              "你",
+              2
+            ],
+            [
+              "好",
+              1
+            ]
+          ]
+        }
+      ],
+      "budget": 768
+    },
+    {
+      "id": "holdout_javascript_zip_longest",
+      "family": "code",
+      "language": "javascript",
+      "function": "zipLongest",
+      "check_input_mutation": true,
+      "prompt": "Write JavaScript function zipLongest(a,b,fill) returning pairs up to the longer input length, using fill only for missing positions. Preserve existing null, false, zero and empty strings. Do not mutate inputs. Return one complete code block, no imports, exports or examples.",
+      "tests": [
+        {
+          "args": [
+            [],
+            [],
+            null
+          ],
+          "expected": []
+        },
+        {
+          "args": [
+            [
+              0,
+              false,
+              ""
+            ],
+            [
+              9
+            ],
+            null
+          ],
+          "expected": [
+            [
+              0,
+              9
+            ],
+            [
+              false,
+              null
+            ],
+            [
+              "",
+              null
+            ]
+          ]
+        },
+        {
+          "args": [
+            [
+              null
+            ],
+            [
+              1,
+              2,
+              3
+            ],
+            "x"
+          ],
+          "expected": [
+            [
+              null,
+              1
+            ],
+            [
+              "x",
+              2
+            ],
+            [
+              "x",
+              3
+            ]
+          ]
+        }
+      ],
+      "budget": 768
+    },
+    {
+      "id": "en_conditional_probability",
+      "family": "english_thinking",
+      "prompt": "A bag contains 6 red and 4 blue balls. Five balls are sampled uniformly without replacement. Given that at least two sampled balls are blue, find the probability that exactly three are blue. Reason in English, account for all possible blue counts in the conditional sample space, and verify the counting once. In the final answer, output only the reduced fraction.",
+      "thinking": true,
+      "thinking_language": "en",
+      "budget": 4096,
+      "expected": "10/31"
+    },
+    {
+      "id": "en_nonadjacent_combinations",
+      "family": "english_thinking",
+      "prompt": "How many binary strings of length 16 contain exactly six ones with no two ones adjacent? Reason in English. Derive a bijective counting argument and check the same count using a recurrence without enumerating all strings. Do not repeat the verification. In the final answer, output only the integer.",
+      "thinking": true,
+      "thinking_language": "en",
+      "budget": 4096,
+      "expected": "462"
+    },
+    {
+      "id": "en_pattern_waiting_time",
+      "family": "english_thinking",
+      "prompt": "A fair coin is tossed independently until the consecutive pattern HTHH appears for the first time. Find the expected number of tosses, starting before any toss. Reason in English by defining the partial-match states and solving their expectation equations, including the overlap transitions. Verify your result once. In the final answer output only the exact expected number.",
+      "thinking": true,
+      "thinking_language": "en",
+      "budget": 6144,
+      "expected": "18"
+    },
+    {
+      "id": "zh_control",
+      "family": "chinese_thinking",
+      "prompt": "从1到10的整数中等概率抽取3个不同的数。求它们的和是偶数的概率。简洁推理后，最终答案只输出最简分数，不再解释。",
+      "thinking": true,
+      "thinking_language": "zh",
+      "budget": 2048,
+      "expected": "1/2"
+    }
+  ],
+  "draft_gguf_sha256": "33d9842166866dae79eeff0026bf90991f438ef0aaa2578429d950f536b0d797",
+  "gate_sha256": "0bcb694a4e84aa304d888829742fdef92941771ac5e97917ca5dc4388f6821c7",
+  "evaluation_build_receipt_sha256": "2fe739d46f48c0fb571e2e1c8b94e7134e71a94186acf22bdc7fcb8bf9bdd621",
+  "driver_sha256": "9dee8f4b35f83eadc91ab2fbc71a5d496eaca85bf367f24cb525c3d4ff73a8d9",
+  "weight_audit_sha256": "385373fddb252764ef4017d00582f27f33c8bd319066c43c009f487cbd678c73",
+  "order": [
+    [
+      "A0",
+      "external"
+    ],
+    [
+      "B1",
+      "embedded"
+    ],
+    [
+      "B2",
+      "embedded"
+    ],
+    [
+      "A3",
+      "external"
+    ]
+  ],
+  "scope": "whole English-thinking request including short final answer; not thinking-only telemetry",
+  "metric_definitions": {
+    "native_tps": "output token count excluding EOS / (native whole_wall_s_before_receipt - prefill_wall_s)",
+    "http_tps": "output token count / client HTTP EOF wall",
+    "acceptance": "accepted / proposed; anchor excluded",
+    "checked_hit": "accepted / checked; anchor excluded; later positions after first rejection are unchecked",
+    "http_first_payload": "client first nonempty reasoning/content/tool delta; not first final-answer content"
+  },
+  "all_full_output_token_ids_equal": true,
+  "machine_checks_passed": 40,
+  "requests": 44,
+  "all_cleanup_verified": true,
+  "summary": [
+    {
+      "id": "after_vision",
+      "full_token_ids_equal": true,
+      "external": {
+        "samples": 2,
+        "output_tokens_each": [
+          1,
+          1
+        ],
+        "reasoning_tokens_each": [
+          null,
+          null
+        ],
+        "prompt_tokens_each": [
+          23,
+          23
+        ],
+        "native_tps": 5.62206299915135,
+        "http_tps": 2.1859516980902374,
+        "http_mean_eof_s": 0.45746664982289076,
+        "accepted": 0,
+        "proposed": 14,
+        "checked": 0,
+        "accepted_over_proposed": 0.0,
+        "accepted_over_checked": null,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 278.55919976718724
+      },
+      "embedded": {
+        "samples": 2,
+        "output_tokens_each": [
+          1,
+          1
+        ],
+        "reasoning_tokens_each": [
+          null,
+          null
+        ],
+        "prompt_tokens_each": [
+          23,
+          23
+        ],
+        "native_tps": 5.627764463425018,
+        "http_tps": 2.145960047482708,
+        "http_mean_eof_s": 0.4659919000696391,
+        "accepted": 0,
+        "proposed": 14,
+        "checked": 0,
+        "accepted_over_proposed": 0.0,
+        "accepted_over_checked": null,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 287.25420008413494
+      }
+    },
+    {
+      "id": "en_conditional_probability",
+      "full_token_ids_equal": true,
+      "external": {
+        "samples": 2,
+        "output_tokens_each": [
+          452,
+          452
+        ],
+        "reasoning_tokens_each": [
+          445,
+          445
+        ],
+        "prompt_tokens_each": [
+          168,
+          168
+        ],
+        "native_tps": 78.64303119959564,
+        "http_tps": 73.37293626603994,
+        "http_mean_eof_s": 6.160309550119564,
+        "accepted": 722,
+        "proposed": 1274,
+        "checked": 848,
+        "accepted_over_proposed": 0.5667189952904239,
+        "accepted_over_checked": 0.8514150943396226,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 411.44030005671084
+      },
+      "embedded": {
+        "samples": 2,
+        "output_tokens_each": [
+          452,
+          452
+        ],
+        "reasoning_tokens_each": [
+          445,
+          445
+        ],
+        "prompt_tokens_each": [
+          168,
+          168
+        ],
+        "native_tps": 78.65891629226894,
+        "http_tps": 73.39940340542852,
+        "http_mean_eof_s": 6.158088200027123,
+        "accepted": 722,
+        "proposed": 1274,
+        "checked": 848,
+        "accepted_over_proposed": 0.5667189952904239,
+        "accepted_over_checked": 0.8514150943396226,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 410.45374982059
+      }
+    },
+    {
+      "id": "en_nonadjacent_combinations",
+      "full_token_ids_equal": true,
+      "external": {
+        "samples": 2,
+        "output_tokens_each": [
+          450,
+          450
+        ],
+        "reasoning_tokens_each": [
+          445,
+          445
+        ],
+        "prompt_tokens_each": [
+          156,
+          156
+        ],
+        "native_tps": 88.04824167074395,
+        "http_tps": 81.41137878302487,
+        "http_mean_eof_s": 5.5274828497786075,
+        "accepted": 738,
+        "proposed": 1134,
+        "checked": 836,
+        "accepted_over_proposed": 0.6507936507936508,
+        "accepted_over_checked": 0.8827751196172249,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 415.2955499012023
+      },
+      "embedded": {
+        "samples": 2,
+        "output_tokens_each": [
+          450,
+          450
+        ],
+        "reasoning_tokens_each": [
+          445,
+          445
+        ],
+        "prompt_tokens_each": [
+          156,
+          156
+        ],
+        "native_tps": 88.11054772247893,
+        "http_tps": 81.63593627304087,
+        "http_mean_eof_s": 5.5122782997787,
+        "accepted": 738,
+        "proposed": 1134,
+        "checked": 836,
+        "accepted_over_proposed": 0.6507936507936508,
+        "accepted_over_checked": 0.8827751196172249,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 403.50979985669255
+      }
+    },
+    {
+      "id": "en_pattern_waiting_time",
+      "full_token_ids_equal": true,
+      "external": {
+        "samples": 2,
+        "output_tokens_each": [
+          1135,
+          1135
+        ],
+        "reasoning_tokens_each": [
+          1131,
+          1131
+        ],
+        "prompt_tokens_each": [
+          164,
+          164
+        ],
+        "native_tps": 65.25211146418573,
+        "http_tps": 63.752811554515105,
+        "http_mean_eof_s": 17.803136400179937,
+        "accepted": 1726,
+        "proposed": 3808,
+        "checked": 2174,
+        "accepted_over_proposed": 0.4532563025210084,
+        "accepted_over_checked": 0.7939282428702852,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 407.28639997541904
+      },
+      "embedded": {
+        "samples": 2,
+        "output_tokens_each": [
+          1135,
+          1135
+        ],
+        "reasoning_tokens_each": [
+          1131,
+          1131
+        ],
+        "prompt_tokens_each": [
+          164,
+          164
+        ],
+        "native_tps": 65.28847226841509,
+        "http_tps": 63.73911381861279,
+        "http_mean_eof_s": 17.80696235015057,
+        "accepted": 1726,
+        "proposed": 3808,
+        "checked": 2174,
+        "accepted_over_proposed": 0.4532563025210084,
+        "accepted_over_checked": 0.7939282428702852,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 420.65844987519085
+      }
+    },
+    {
+      "id": "holdout_javascript_zip_longest",
+      "full_token_ids_equal": true,
+      "external": {
+        "samples": 2,
+        "output_tokens_each": [
+          133,
+          133
+        ],
+        "reasoning_tokens_each": [
+          null,
+          null
+        ],
+        "prompt_tokens_each": [
+          68,
+          68
+        ],
+        "native_tps": 113.05692275802278,
+        "http_tps": 85.86371717728017,
+        "http_mean_eof_s": 1.5489662499167025,
+        "accepted": 228,
+        "proposed": 266,
+        "checked": 234,
+        "accepted_over_proposed": 0.8571428571428571,
+        "accepted_over_checked": 0.9743589743589743,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 371.4361998718232
+      },
+      "embedded": {
+        "samples": 2,
+        "output_tokens_each": [
+          133,
+          133
+        ],
+        "reasoning_tokens_each": [
+          null,
+          null
+        ],
+        "prompt_tokens_each": [
+          68,
+          68
+        ],
+        "native_tps": 113.07331571770098,
+        "http_tps": 86.11806287806046,
+        "http_mean_eof_s": 1.5443914500065148,
+        "accepted": 228,
+        "proposed": 266,
+        "checked": 234,
+        "accepted_over_proposed": 0.8571428571428571,
+        "accepted_over_checked": 0.9743589743589743,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 367.1012499835342
+      }
+    },
+    {
+      "id": "holdout_python_histogram",
+      "full_token_ids_equal": true,
+      "external": {
+        "samples": 2,
+        "output_tokens_each": [
+          71,
+          71
+        ],
+        "reasoning_tokens_each": [
+          null,
+          null
+        ],
+        "prompt_tokens_each": [
+          52,
+          52
+        ],
+        "native_tps": 127.58347553200514,
+        "http_tps": 81.88308961342285,
+        "http_mean_eof_s": 0.867089900188148,
+        "accepted": 124,
+        "proposed": 126,
+        "checked": 126,
+        "accepted_over_proposed": 0.9841269841269841,
+        "accepted_over_checked": 0.9841269841269841,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 309.3500998802483
+      },
+      "embedded": {
+        "samples": 2,
+        "output_tokens_each": [
+          71,
+          71
+        ],
+        "reasoning_tokens_each": [
+          null,
+          null
+        ],
+        "prompt_tokens_each": [
+          52,
+          52
+        ],
+        "native_tps": 127.63440329613148,
+        "http_tps": 81.22735215031324,
+        "http_mean_eof_s": 0.8740898000542074,
+        "accepted": 124,
+        "proposed": 126,
+        "checked": 126,
+        "accepted_over_proposed": 0.9841269841269841,
+        "accepted_over_checked": 0.9841269841269841,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 315.93909999355674
+      }
+    },
+    {
+      "id": "tool_lookup",
+      "full_token_ids_equal": true,
+      "external": {
+        "samples": 2,
+        "output_tokens_each": [
+          32,
+          32
+        ],
+        "reasoning_tokens_each": [
+          null,
+          null
+        ],
+        "prompt_tokens_each": [
+          329,
+          329
+        ],
+        "native_tps": 127.57802293135225,
+        "http_tps": 41.95830694382809,
+        "http_mean_eof_s": 0.7626618500798941,
+        "accepted": 56,
+        "proposed": 56,
+        "checked": 56,
+        "accepted_over_proposed": 1.0,
+        "accepted_over_checked": 1.0,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 762.4884999822825
+      },
+      "embedded": {
+        "samples": 2,
+        "output_tokens_each": [
+          32,
+          32
+        ],
+        "reasoning_tokens_each": [
+          null,
+          null
+        ],
+        "prompt_tokens_each": [
+          329,
+          329
+        ],
+        "native_tps": 127.48628128095028,
+        "http_tps": 42.43157030625411,
+        "http_mean_eof_s": 0.7541554500348866,
+        "accepted": 56,
+        "proposed": 56,
+        "checked": 56,
+        "accepted_over_proposed": 1.0,
+        "accepted_over_checked": 1.0,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 753.966849995777
+      }
+    },
+    {
+      "id": "tool_result",
+      "full_token_ids_equal": true,
+      "external": {
+        "samples": 2,
+        "output_tokens_each": [
+          6,
+          6
+        ],
+        "reasoning_tokens_each": [
+          null,
+          null
+        ],
+        "prompt_tokens_each": [
+          410,
+          410
+        ],
+        "native_tps": 92.11099989560749,
+        "http_tps": 15.953999295975667,
+        "http_mean_eof_s": 0.3760812501423061,
+        "accepted": 10,
+        "proposed": 14,
+        "checked": 10,
+        "accepted_over_proposed": 0.7142857142857143,
+        "accepted_over_checked": 1.0,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 309.83220017515123
+      },
+      "embedded": {
+        "samples": 2,
+        "output_tokens_each": [
+          6,
+          6
+        ],
+        "reasoning_tokens_each": [
+          null,
+          null
+        ],
+        "prompt_tokens_each": [
+          410,
+          410
+        ],
+        "native_tps": 92.04988183096417,
+        "http_tps": 16.00527532923063,
+        "http_mean_eof_s": 0.37487640022300184,
+        "accepted": 10,
+        "proposed": 14,
+        "checked": 10,
+        "accepted_over_proposed": 0.7142857142857143,
+        "accepted_over_checked": 1.0,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 308.61380021087825
+      }
+    },
+    {
+      "id": "vision_ocr",
+      "full_token_ids_equal": true,
+      "external": {
+        "samples": 2,
+        "output_tokens_each": [
+          3,
+          3
+        ],
+        "reasoning_tokens_each": [
+          null,
+          null
+        ],
+        "prompt_tokens_each": [
+          100,
+          100
+        ],
+        "native_tps": 35.25370031651946,
+        "http_tps": 4.378683429136201,
+        "http_mean_eof_s": 0.6851374502293766,
+        "accepted": 0,
+        "proposed": 0,
+        "checked": 0,
+        "accepted_over_proposed": null,
+        "accepted_over_checked": null,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 598.8477002829313
+      },
+      "embedded": {
+        "samples": 2,
+        "output_tokens_each": [
+          3,
+          3
+        ],
+        "reasoning_tokens_each": [
+          null,
+          null
+        ],
+        "prompt_tokens_each": [
+          100,
+          100
+        ],
+        "native_tps": 35.25289249982959,
+        "http_tps": 4.392382027773995,
+        "http_mean_eof_s": 0.6830007000826299,
+        "accepted": 0,
+        "proposed": 0,
+        "checked": 0,
+        "accepted_over_proposed": null,
+        "accepted_over_checked": null,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 596.7488000169396
+      }
+    },
+    {
+      "id": "zh_control",
+      "full_token_ids_equal": true,
+      "external": {
+        "samples": 2,
+        "output_tokens_each": [
+          219,
+          219
+        ],
+        "reasoning_tokens_each": [
+          214,
+          214
+        ],
+        "prompt_tokens_each": [
+          119,
+          119
+        ],
+        "native_tps": 92.35047909235756,
+        "http_tps": 79.2802741199441,
+        "http_mean_eof_s": 2.762351700104773,
+        "accepted": 362,
+        "proposed": 532,
+        "checked": 394,
+        "accepted_over_proposed": 0.6804511278195489,
+        "accepted_over_checked": 0.9187817258883249,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 389.71334998495877
+      },
+      "embedded": {
+        "samples": 2,
+        "output_tokens_each": [
+          219,
+          219
+        ],
+        "reasoning_tokens_each": [
+          214,
+          214
+        ],
+        "prompt_tokens_each": [
+          119,
+          119
+        ],
+        "native_tps": 92.41988166879077,
+        "http_tps": 79.4364480899397,
+        "http_mean_eof_s": 2.7569208501372486,
+        "accepted": 362,
+        "proposed": 532,
+        "checked": 394,
+        "accepted_over_proposed": 0.6804511278195489,
+        "accepted_over_checked": 0.9187817258883249,
+        "stops": [
+          "eos",
+          "eos"
+        ],
+        "http_first_payload_ms_mean": 386.0081001184881
+      }
+    }
+  ],
+  "rows": [
+    {
+      "phase": "A0",
+      "gate_storage": "external",
+      "id": "warmup",
+      "family": "boundary",
+      "prompt_tokens": 17,
+      "output_tokens": 1,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.06280450000000004,
+      "native_tps": 15.922425940816332,
+      "http_first_payload_s": 0.2629769998602569,
+      "http_eof_s": 0.32685039984062314,
+      "acceptance": {
+        "rounds": 1,
+        "proposed_draft_tokens": 7,
+        "accepted_draft_tokens": 0,
+        "checked_draft_tokens": 0,
+        "accepted_over_proposed": 0.0,
+        "accepted_over_checked": null,
+        "mean_accepted_drafts": 0.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 7
+      },
+      "output_token_ids_sha256": "fdaf75c43612dfe7c9e51a5d02472d729702822abce4fde6d648c8fbab14dce9",
+      "native_receipt_sha256": "29000ad71df29f07fcb451e85f020fdd1d7be3b710a5bbed35d7a2d7fad7b2dc"
+    },
+    {
+      "phase": "A0",
+      "gate_storage": "external",
+      "id": "holdout_python_histogram",
+      "family": "code",
+      "prompt_tokens": 52,
+      "output_tokens": 71,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.5567500999999999,
+      "native_tps": 127.52579658270382,
+      "http_first_payload_s": 0.30858170008286834,
+      "http_eof_s": 0.8665846004150808,
+      "acceptance": {
+        "rounds": 9,
+        "proposed_draft_tokens": 63,
+        "accepted_draft_tokens": 62,
+        "checked_draft_tokens": 63,
+        "accepted_over_proposed": 0.9841269841269841,
+        "accepted_over_checked": 0.9841269841269841,
+        "mean_accepted_drafts": 6.888888888888889,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            8,
+            1,
+            0,
+            0
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 0
+      },
+      "output_token_ids_sha256": "79aa7a2600457952f7785f5de47e954b4542583207a09fd2c556f143e49b89f0",
+      "native_receipt_sha256": "fa6eb41b88e317d546f8208d8445de33f14517eb141ac0569c8e30c5aae44167"
+    },
+    {
+      "phase": "A0",
+      "gate_storage": "external",
+      "id": "holdout_javascript_zip_longest",
+      "family": "code",
+      "prompt_tokens": 68,
+      "output_tokens": 133,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 1.1768009,
+      "native_tps": 113.01826842586541,
+      "http_first_payload_s": 0.3663331000134349,
+      "http_eof_s": 1.5443405997939408,
+      "acceptance": {
+        "rounds": 19,
+        "proposed_draft_tokens": 133,
+        "accepted_draft_tokens": 114,
+        "checked_draft_tokens": 117,
+        "accepted_over_proposed": 0.8571428571428571,
+        "accepted_over_checked": 0.9743589743589743,
+        "mean_accepted_drafts": 6.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            18,
+            1,
+            0,
+            0
+          ],
+          [
+            17,
+            1,
+            1,
+            0
+          ],
+          [
+            16,
+            1,
+            2,
+            0
+          ],
+          [
+            16,
+            0,
+            3,
+            0
+          ],
+          [
+            16,
+            0,
+            3,
+            0
+          ],
+          [
+            16,
+            0,
+            3,
+            0
+          ],
+          [
+            15,
+            0,
+            3,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 15,
+        "stop_censored": 1
+      },
+      "output_token_ids_sha256": "387e639586e03021ae962aa2ff398cddace54a664a84fcea7c88602717ba618b",
+      "native_receipt_sha256": "813caf71c49b427b16cfd25c7718c108f63f6500bfbb684e81473b24726438eb"
+    },
+    {
+      "phase": "A0",
+      "gate_storage": "external",
+      "id": "en_conditional_probability",
+      "family": "english_thinking",
+      "prompt_tokens": 168,
+      "output_tokens": 452,
+      "reasoning_tokens": 445,
+      "stop": "eos",
+      "native_generation_s": 5.7493078,
+      "native_tps": 78.6181599113549,
+      "http_first_payload_s": 0.4042489002458751,
+      "http_eof_s": 6.154873200226575,
+      "acceptance": {
+        "rounds": 91,
+        "proposed_draft_tokens": 637,
+        "accepted_draft_tokens": 361,
+        "checked_draft_tokens": 424,
+        "accepted_over_proposed": 0.5667189952904239,
+        "accepted_over_checked": 0.8514150943396226,
+        "mean_accepted_drafts": 3.967032967032967,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            78,
+            12,
+            0,
+            1
+          ],
+          [
+            69,
+            9,
+            12,
+            1
+          ],
+          [
+            59,
+            10,
+            21,
+            1
+          ],
+          [
+            52,
+            7,
+            31,
+            1
+          ],
+          [
+            44,
+            8,
+            38,
+            1
+          ],
+          [
+            32,
+            12,
+            46,
+            1
+          ],
+          [
+            27,
+            5,
+            58,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 206,
+        "stop_censored": 7
+      },
+      "output_token_ids_sha256": "9d05eceeaab85fae58829e062fb1789b09a2438461f5e6063780d01dc72a32a9",
+      "native_receipt_sha256": "26b69e17a5420eea4a2aab181f335c430d55b1bb3663a3a45174ed9642711e13"
+    },
+    {
+      "phase": "A0",
+      "gate_storage": "external",
+      "id": "en_nonadjacent_combinations",
+      "family": "english_thinking",
+      "prompt_tokens": 156,
+      "output_tokens": 450,
+      "reasoning_tokens": 445,
+      "stop": "eos",
+      "native_generation_s": 5.111493,
+      "native_tps": 88.03690037333514,
+      "http_first_payload_s": 0.40941209997981787,
+      "http_eof_s": 5.5223254999145865,
+      "acceptance": {
+        "rounds": 81,
+        "proposed_draft_tokens": 567,
+        "accepted_draft_tokens": 369,
+        "checked_draft_tokens": 418,
+        "accepted_over_proposed": 0.6507936507936508,
+        "accepted_over_checked": 0.8827751196172249,
+        "mean_accepted_drafts": 4.555555555555555,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            73,
+            8,
+            0,
+            0
+          ],
+          [
+            68,
+            5,
+            8,
+            0
+          ],
+          [
+            62,
+            6,
+            13,
+            0
+          ],
+          [
+            53,
+            9,
+            19,
+            0
+          ],
+          [
+            46,
+            7,
+            28,
+            0
+          ],
+          [
+            36,
+            9,
+            35,
+            1
+          ],
+          [
+            31,
+            5,
+            44,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 147,
+        "stop_censored": 2
+      },
+      "output_token_ids_sha256": "1d6b8c341445f771314fddcd3f5aed54f1e86e80d85accae0e3156d3aa8a80c5",
+      "native_receipt_sha256": "c56ade870de59821f0440fdf90d3e14e63005a96f2a59a98aabaf6851b1acc3c"
+    },
+    {
+      "phase": "A0",
+      "gate_storage": "external",
+      "id": "en_pattern_waiting_time",
+      "family": "english_thinking",
+      "prompt_tokens": 164,
+      "output_tokens": 1135,
+      "reasoning_tokens": 1131,
+      "stop": "eos",
+      "native_generation_s": 17.395896299999997,
+      "native_tps": 65.24527281758975,
+      "http_first_payload_s": 0.4001148999668658,
+      "http_eof_s": 17.797860600054264,
+      "acceptance": {
+        "rounds": 272,
+        "proposed_draft_tokens": 1904,
+        "accepted_draft_tokens": 863,
+        "checked_draft_tokens": 1087,
+        "accepted_over_proposed": 0.4532563025210084,
+        "accepted_over_checked": 0.7939282428702852,
+        "mean_accepted_drafts": 3.172794117647059,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            231,
+            41,
+            0,
+            0
+          ],
+          [
+            181,
+            50,
+            41,
+            0
+          ],
+          [
+            142,
+            39,
+            91,
+            0
+          ],
+          [
+            112,
+            30,
+            130,
+            0
+          ],
+          [
+            84,
+            27,
+            160,
+            1
+          ],
+          [
+            66,
+            18,
+            187,
+            1
+          ],
+          [
+            47,
+            19,
+            205,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 814,
+        "stop_censored": 3
+      },
+      "output_token_ids_sha256": "7097507aec06fdeed36b3bc535c7fc06e0048fdaa8f68d3fe572f7558def1f47",
+      "native_receipt_sha256": "6c0ab8bf96f592141f07e7e3ab1d278b22c7d75ea20d780af7a5d43fa38f5f73"
+    },
+    {
+      "phase": "A0",
+      "gate_storage": "external",
+      "id": "zh_control",
+      "family": "chinese_thinking",
+      "prompt_tokens": 119,
+      "output_tokens": 219,
+      "reasoning_tokens": 214,
+      "stop": "eos",
+      "native_generation_s": 2.3716304,
+      "native_tps": 92.34153854664707,
+      "http_first_payload_s": 0.3906701998785138,
+      "http_eof_s": 2.7635675999335945,
+      "acceptance": {
+        "rounds": 38,
+        "proposed_draft_tokens": 266,
+        "accepted_draft_tokens": 181,
+        "checked_draft_tokens": 197,
+        "accepted_over_proposed": 0.6804511278195489,
+        "accepted_over_checked": 0.9187817258883249,
+        "mean_accepted_drafts": 4.7631578947368425,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            33,
+            5,
+            0,
+            0
+          ],
+          [
+            30,
+            3,
+            5,
+            0
+          ],
+          [
+            27,
+            3,
+            8,
+            0
+          ],
+          [
+            25,
+            2,
+            11,
+            0
+          ],
+          [
+            23,
+            1,
+            13,
+            1
+          ],
+          [
+            22,
+            1,
+            14,
+            1
+          ],
+          [
+            21,
+            1,
+            15,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 66,
+        "stop_censored": 3
+      },
+      "output_token_ids_sha256": "05824a837d2c3df860306c60c1795026da724014c6fe3915965e86c43d8283fb",
+      "native_receipt_sha256": "cf904c11c4ccc2bcf79429db7f9d0e4c553650d678018cbb16e3fe7d28898457"
+    },
+    {
+      "phase": "A0",
+      "gate_storage": "external",
+      "id": "tool_lookup",
+      "family": "tool_call",
+      "prompt_tokens": 329,
+      "output_tokens": 32,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.25088659999999996,
+      "native_tps": 127.54766496098239,
+      "http_first_payload_s": 0.7719722003675997,
+      "http_eof_s": 0.772163700312376,
+      "acceptance": {
+        "rounds": 4,
+        "proposed_draft_tokens": 28,
+        "accepted_draft_tokens": 28,
+        "checked_draft_tokens": 28,
+        "accepted_over_proposed": 1.0,
+        "accepted_over_checked": 1.0,
+        "mean_accepted_drafts": 7.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 0
+      },
+      "output_token_ids_sha256": "856b3888d7f16e0e1ef1bb04a99caa44f75ecb15663dddb7ff3b2e96219e75b7",
+      "native_receipt_sha256": "6628081250189fb6f677c9be1c6c75c07ea06b1e446e29076d47114049d56bf7"
+    },
+    {
+      "phase": "A0",
+      "gate_storage": "external",
+      "id": "tool_result",
+      "family": "tool_result",
+      "prompt_tokens": 410,
+      "output_tokens": 6,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.06520000000000004,
+      "native_tps": 92.02453987730057,
+      "http_first_payload_s": 0.30340460035949945,
+      "http_eof_s": 0.36968740029260516,
+      "acceptance": {
+        "rounds": 1,
+        "proposed_draft_tokens": 7,
+        "accepted_draft_tokens": 5,
+        "checked_draft_tokens": 5,
+        "accepted_over_proposed": 0.7142857142857143,
+        "accepted_over_checked": 1.0,
+        "mean_accepted_drafts": 5.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 2
+      },
+      "output_token_ids_sha256": "7e318e2f6d9188b0d2670f2e39897ea85cfa47a46c29d02a3fecbbae364ba22d",
+      "native_receipt_sha256": "86b5988b0d18084a18122feb1a3c5d17aeac7e3a89fd964967391f3132d12d5b"
+    },
+    {
+      "phase": "A0",
+      "gate_storage": "external",
+      "id": "vision_ocr",
+      "family": "vision",
+      "prompt_tokens": 100,
+      "output_tokens": 3,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.08507960000000003,
+      "native_tps": 35.26109666712113,
+      "http_first_payload_s": 0.6018636003136635,
+      "http_eof_s": 0.6882397001609206,
+      "acceptance": {
+        "rounds": 0,
+        "proposed_draft_tokens": 0,
+        "accepted_draft_tokens": 0,
+        "checked_draft_tokens": 0,
+        "accepted_over_proposed": null,
+        "accepted_over_checked": null,
+        "mean_accepted_drafts": null,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 0
+      },
+      "output_token_ids_sha256": "6d76de071af02114ac27f969d67fbb001f317c2fedfd9df3d4d726d446b1739a",
+      "native_receipt_sha256": "4bb28fa87d2e3818069bca206b0e635fb55443ac8bcc2e7755f428f9e9accc9b"
+    },
+    {
+      "phase": "A0",
+      "gate_storage": "external",
+      "id": "after_vision",
+      "family": "boundary",
+      "prompt_tokens": 23,
+      "output_tokens": 1,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.17730630000000003,
+      "native_tps": 5.639957519839959,
+      "http_first_payload_s": 0.28963669994845986,
+      "http_eof_s": 0.46797449979931116,
+      "acceptance": {
+        "rounds": 1,
+        "proposed_draft_tokens": 7,
+        "accepted_draft_tokens": 0,
+        "checked_draft_tokens": 0,
+        "accepted_over_proposed": 0.0,
+        "accepted_over_checked": null,
+        "mean_accepted_drafts": 0.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 7
+      },
+      "output_token_ids_sha256": "eb3c4eb5d08cfdfeccc15734ae86cde2e5f247299e3b6d5742dc35e67da62fad",
+      "native_receipt_sha256": "3a1af7ddedf34d578ae470cc9e1686c837bc87b04260df03bc13f63ddff2f4e8"
+    },
+    {
+      "phase": "B1",
+      "gate_storage": "embedded",
+      "id": "warmup",
+      "family": "boundary",
+      "prompt_tokens": 17,
+      "output_tokens": 1,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.06275390000000003,
+      "native_tps": 15.935264581165466,
+      "http_first_payload_s": 0.25978720001876354,
+      "http_eof_s": 0.32345949998125434,
+      "acceptance": {
+        "rounds": 1,
+        "proposed_draft_tokens": 7,
+        "accepted_draft_tokens": 0,
+        "checked_draft_tokens": 0,
+        "accepted_over_proposed": 0.0,
+        "accepted_over_checked": null,
+        "mean_accepted_drafts": 0.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 7
+      },
+      "output_token_ids_sha256": "fdaf75c43612dfe7c9e51a5d02472d729702822abce4fde6d648c8fbab14dce9",
+      "native_receipt_sha256": "aad80d54c0aa8a0526ac1c559868936f8526a34ad9676247ccd6bfd76d38a08b"
+    },
+    {
+      "phase": "B1",
+      "gate_storage": "embedded",
+      "id": "holdout_python_histogram",
+      "family": "code",
+      "prompt_tokens": 52,
+      "output_tokens": 71,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.5566306,
+      "native_tps": 127.55317440327572,
+      "http_first_payload_s": 0.32191010005772114,
+      "http_eof_s": 0.8811633000150323,
+      "acceptance": {
+        "rounds": 9,
+        "proposed_draft_tokens": 63,
+        "accepted_draft_tokens": 62,
+        "checked_draft_tokens": 63,
+        "accepted_over_proposed": 0.9841269841269841,
+        "accepted_over_checked": 0.9841269841269841,
+        "mean_accepted_drafts": 6.888888888888889,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            8,
+            1,
+            0,
+            0
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 0
+      },
+      "output_token_ids_sha256": "79aa7a2600457952f7785f5de47e954b4542583207a09fd2c556f143e49b89f0",
+      "native_receipt_sha256": "ec4b7fefac829d65f2c5a36478d01c0e963ac19ff8c2a779bb5991ca9db718a4"
+    },
+    {
+      "phase": "B1",
+      "gate_storage": "embedded",
+      "id": "holdout_javascript_zip_longest",
+      "family": "code",
+      "prompt_tokens": 68,
+      "output_tokens": 133,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 1.1771704,
+      "native_tps": 112.98279331522437,
+      "http_first_payload_s": 0.36757929995656013,
+      "http_eof_s": 1.5458631999790668,
+      "acceptance": {
+        "rounds": 19,
+        "proposed_draft_tokens": 133,
+        "accepted_draft_tokens": 114,
+        "checked_draft_tokens": 117,
+        "accepted_over_proposed": 0.8571428571428571,
+        "accepted_over_checked": 0.9743589743589743,
+        "mean_accepted_drafts": 6.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            18,
+            1,
+            0,
+            0
+          ],
+          [
+            17,
+            1,
+            1,
+            0
+          ],
+          [
+            16,
+            1,
+            2,
+            0
+          ],
+          [
+            16,
+            0,
+            3,
+            0
+          ],
+          [
+            16,
+            0,
+            3,
+            0
+          ],
+          [
+            16,
+            0,
+            3,
+            0
+          ],
+          [
+            15,
+            0,
+            3,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 15,
+        "stop_censored": 1
+      },
+      "output_token_ids_sha256": "387e639586e03021ae962aa2ff398cddace54a664a84fcea7c88602717ba618b",
+      "native_receipt_sha256": "5aad1b3178f6813c0b9d4de01003e0a6089a40f74f803c56e1e4490a128a2009"
+    },
+    {
+      "phase": "B1",
+      "gate_storage": "embedded",
+      "id": "en_conditional_probability",
+      "family": "english_thinking",
+      "prompt_tokens": 168,
+      "output_tokens": 452,
+      "reasoning_tokens": 445,
+      "stop": "eos",
+      "native_generation_s": 5.7494711999999994,
+      "native_tps": 78.61592558286057,
+      "http_first_payload_s": 0.40486219990998507,
+      "http_eof_s": 6.155657200142741,
+      "acceptance": {
+        "rounds": 91,
+        "proposed_draft_tokens": 637,
+        "accepted_draft_tokens": 361,
+        "checked_draft_tokens": 424,
+        "accepted_over_proposed": 0.5667189952904239,
+        "accepted_over_checked": 0.8514150943396226,
+        "mean_accepted_drafts": 3.967032967032967,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            78,
+            12,
+            0,
+            1
+          ],
+          [
+            69,
+            9,
+            12,
+            1
+          ],
+          [
+            59,
+            10,
+            21,
+            1
+          ],
+          [
+            52,
+            7,
+            31,
+            1
+          ],
+          [
+            44,
+            8,
+            38,
+            1
+          ],
+          [
+            32,
+            12,
+            46,
+            1
+          ],
+          [
+            27,
+            5,
+            58,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 206,
+        "stop_censored": 7
+      },
+      "output_token_ids_sha256": "9d05eceeaab85fae58829e062fb1789b09a2438461f5e6063780d01dc72a32a9",
+      "native_receipt_sha256": "b510c24fb2e9c9554b3b6f44eae898e5277ea0cf8f70fd4e7f856a5c23375907"
+    },
+    {
+      "phase": "B1",
+      "gate_storage": "embedded",
+      "id": "en_nonadjacent_combinations",
+      "family": "english_thinking",
+      "prompt_tokens": 156,
+      "output_tokens": 450,
+      "reasoning_tokens": 445,
+      "stop": "eos",
+      "native_generation_s": 5.110066099999999,
+      "native_tps": 88.0614831968612,
+      "http_first_payload_s": 0.39921689964830875,
+      "http_eof_s": 5.510744399856776,
+      "acceptance": {
+        "rounds": 81,
+        "proposed_draft_tokens": 567,
+        "accepted_draft_tokens": 369,
+        "checked_draft_tokens": 418,
+        "accepted_over_proposed": 0.6507936507936508,
+        "accepted_over_checked": 0.8827751196172249,
+        "mean_accepted_drafts": 4.555555555555555,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            73,
+            8,
+            0,
+            0
+          ],
+          [
+            68,
+            5,
+            8,
+            0
+          ],
+          [
+            62,
+            6,
+            13,
+            0
+          ],
+          [
+            53,
+            9,
+            19,
+            0
+          ],
+          [
+            46,
+            7,
+            28,
+            0
+          ],
+          [
+            36,
+            9,
+            35,
+            1
+          ],
+          [
+            31,
+            5,
+            44,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 147,
+        "stop_censored": 2
+      },
+      "output_token_ids_sha256": "1d6b8c341445f771314fddcd3f5aed54f1e86e80d85accae0e3156d3aa8a80c5",
+      "native_receipt_sha256": "0e584e0c366c2c8849a1ccfdbd0bfe0c750cd07970ad811ca60cff0c9f6eac8d"
+    },
+    {
+      "phase": "B1",
+      "gate_storage": "embedded",
+      "id": "en_pattern_waiting_time",
+      "family": "english_thinking",
+      "prompt_tokens": 164,
+      "output_tokens": 1135,
+      "reasoning_tokens": 1131,
+      "stop": "eos",
+      "native_generation_s": 17.3943609,
+      "native_tps": 65.25103201693372,
+      "http_first_payload_s": 0.4155901996418834,
+      "http_eof_s": 17.811858600005507,
+      "acceptance": {
+        "rounds": 272,
+        "proposed_draft_tokens": 1904,
+        "accepted_draft_tokens": 863,
+        "checked_draft_tokens": 1087,
+        "accepted_over_proposed": 0.4532563025210084,
+        "accepted_over_checked": 0.7939282428702852,
+        "mean_accepted_drafts": 3.172794117647059,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            231,
+            41,
+            0,
+            0
+          ],
+          [
+            181,
+            50,
+            41,
+            0
+          ],
+          [
+            142,
+            39,
+            91,
+            0
+          ],
+          [
+            112,
+            30,
+            130,
+            0
+          ],
+          [
+            84,
+            27,
+            160,
+            1
+          ],
+          [
+            66,
+            18,
+            187,
+            1
+          ],
+          [
+            47,
+            19,
+            205,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 814,
+        "stop_censored": 3
+      },
+      "output_token_ids_sha256": "7097507aec06fdeed36b3bc535c7fc06e0048fdaa8f68d3fe572f7558def1f47",
+      "native_receipt_sha256": "53b12db1c8c664383da0af2aa0886197d65edd763830067aaa71cf344fca6dd7"
+    },
+    {
+      "phase": "B1",
+      "gate_storage": "embedded",
+      "id": "zh_control",
+      "family": "chinese_thinking",
+      "prompt_tokens": 119,
+      "output_tokens": 219,
+      "reasoning_tokens": 214,
+      "stop": "eos",
+      "native_generation_s": 2.3714645,
+      "native_tps": 92.3479984625534,
+      "http_first_payload_s": 0.37869920022785664,
+      "http_eof_s": 2.7514634002000093,
+      "acceptance": {
+        "rounds": 38,
+        "proposed_draft_tokens": 266,
+        "accepted_draft_tokens": 181,
+        "checked_draft_tokens": 197,
+        "accepted_over_proposed": 0.6804511278195489,
+        "accepted_over_checked": 0.9187817258883249,
+        "mean_accepted_drafts": 4.7631578947368425,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            33,
+            5,
+            0,
+            0
+          ],
+          [
+            30,
+            3,
+            5,
+            0
+          ],
+          [
+            27,
+            3,
+            8,
+            0
+          ],
+          [
+            25,
+            2,
+            11,
+            0
+          ],
+          [
+            23,
+            1,
+            13,
+            1
+          ],
+          [
+            22,
+            1,
+            14,
+            1
+          ],
+          [
+            21,
+            1,
+            15,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 66,
+        "stop_censored": 3
+      },
+      "output_token_ids_sha256": "05824a837d2c3df860306c60c1795026da724014c6fe3915965e86c43d8283fb",
+      "native_receipt_sha256": "5b4b703e2aed6041e7472152b7c0b2efdec5b006384e80ac8280f7d202a3898b"
+    },
+    {
+      "phase": "B1",
+      "gate_storage": "embedded",
+      "id": "tool_lookup",
+      "family": "tool_call",
+      "prompt_tokens": 329,
+      "output_tokens": 32,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.25072140000000004,
+      "native_tps": 127.63170594931265,
+      "http_first_payload_s": 0.7683145999908447,
+      "http_eof_s": 0.7684830999933183,
+      "acceptance": {
+        "rounds": 4,
+        "proposed_draft_tokens": 28,
+        "accepted_draft_tokens": 28,
+        "checked_draft_tokens": 28,
+        "accepted_over_proposed": 1.0,
+        "accepted_over_checked": 1.0,
+        "mean_accepted_drafts": 7.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 0
+      },
+      "output_token_ids_sha256": "856b3888d7f16e0e1ef1bb04a99caa44f75ecb15663dddb7ff3b2e96219e75b7",
+      "native_receipt_sha256": "c7e11781b5e06b953a7345173bb6cf02daef7fdc8e66b7cdcca436484fee4bb1"
+    },
+    {
+      "phase": "B1",
+      "gate_storage": "embedded",
+      "id": "tool_result",
+      "family": "tool_result",
+      "prompt_tokens": 410,
+      "output_tokens": 6,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.06521460000000001,
+      "native_tps": 92.00393776853647,
+      "http_first_payload_s": 0.3143243002705276,
+      "http_eof_s": 0.3806024002842605,
+      "acceptance": {
+        "rounds": 1,
+        "proposed_draft_tokens": 7,
+        "accepted_draft_tokens": 5,
+        "checked_draft_tokens": 5,
+        "accepted_over_proposed": 0.7142857142857143,
+        "accepted_over_checked": 1.0,
+        "mean_accepted_drafts": 5.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 2
+      },
+      "output_token_ids_sha256": "7e318e2f6d9188b0d2670f2e39897ea85cfa47a46c29d02a3fecbbae364ba22d",
+      "native_receipt_sha256": "1236902dbfb6d0405d18bf279266254c746f91e54245b2e11de83184a93fc3fd"
+    },
+    {
+      "phase": "B1",
+      "gate_storage": "embedded",
+      "id": "vision_ocr",
+      "family": "vision",
+      "prompt_tokens": 100,
+      "output_tokens": 3,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.08509500000000003,
+      "native_tps": 35.254715318173794,
+      "http_first_payload_s": 0.5938773998059332,
+      "http_eof_s": 0.6800454999320209,
+      "acceptance": {
+        "rounds": 0,
+        "proposed_draft_tokens": 0,
+        "accepted_draft_tokens": 0,
+        "checked_draft_tokens": 0,
+        "accepted_over_proposed": null,
+        "accepted_over_checked": null,
+        "mean_accepted_drafts": null,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 0
+      },
+      "output_token_ids_sha256": "6d76de071af02114ac27f969d67fbb001f317c2fedfd9df3d4d726d446b1739a",
+      "native_receipt_sha256": "99f06c75c5bf5d4ede3782c9f0d128e08ad86761657e7318d2093f782c67721c"
+    },
+    {
+      "phase": "B1",
+      "gate_storage": "embedded",
+      "id": "after_vision",
+      "family": "boundary",
+      "prompt_tokens": 23,
+      "output_tokens": 1,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.1790428,
+      "native_tps": 5.585256709568885,
+      "http_first_payload_s": 0.2892484003677964,
+      "http_eof_s": 0.4692705003544688,
+      "acceptance": {
+        "rounds": 1,
+        "proposed_draft_tokens": 7,
+        "accepted_draft_tokens": 0,
+        "checked_draft_tokens": 0,
+        "accepted_over_proposed": 0.0,
+        "accepted_over_checked": null,
+        "mean_accepted_drafts": 0.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 7
+      },
+      "output_token_ids_sha256": "eb3c4eb5d08cfdfeccc15734ae86cde2e5f247299e3b6d5742dc35e67da62fad",
+      "native_receipt_sha256": "0b46532667f2574f391c9135ade3c07169ed36b0f0c29fd2793d34941c0c96f5"
+    },
+    {
+      "phase": "B2",
+      "gate_storage": "embedded",
+      "id": "warmup",
+      "family": "boundary",
+      "prompt_tokens": 17,
+      "output_tokens": 1,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.0626214,
+      "native_tps": 15.968981849655231,
+      "http_first_payload_s": 0.25994750019162893,
+      "http_eof_s": 0.32375380024313927,
+      "acceptance": {
+        "rounds": 1,
+        "proposed_draft_tokens": 7,
+        "accepted_draft_tokens": 0,
+        "checked_draft_tokens": 0,
+        "accepted_over_proposed": 0.0,
+        "accepted_over_checked": null,
+        "mean_accepted_drafts": 0.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 7
+      },
+      "output_token_ids_sha256": "fdaf75c43612dfe7c9e51a5d02472d729702822abce4fde6d648c8fbab14dce9",
+      "native_receipt_sha256": "86c2a15a7472536326ab59642b8e7f638c49df3402e88f9a2cd41a15734dd7b2"
+    },
+    {
+      "phase": "B2",
+      "gate_storage": "embedded",
+      "id": "zh_control",
+      "family": "chinese_thinking",
+      "prompt_tokens": 119,
+      "output_tokens": 219,
+      "reasoning_tokens": 214,
+      "stop": "eos",
+      "native_generation_s": 2.3677755,
+      "native_tps": 92.49187686923865,
+      "http_first_payload_s": 0.3933170000091195,
+      "http_eof_s": 2.762378300074488,
+      "acceptance": {
+        "rounds": 38,
+        "proposed_draft_tokens": 266,
+        "accepted_draft_tokens": 181,
+        "checked_draft_tokens": 197,
+        "accepted_over_proposed": 0.6804511278195489,
+        "accepted_over_checked": 0.9187817258883249,
+        "mean_accepted_drafts": 4.7631578947368425,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            33,
+            5,
+            0,
+            0
+          ],
+          [
+            30,
+            3,
+            5,
+            0
+          ],
+          [
+            27,
+            3,
+            8,
+            0
+          ],
+          [
+            25,
+            2,
+            11,
+            0
+          ],
+          [
+            23,
+            1,
+            13,
+            1
+          ],
+          [
+            22,
+            1,
+            14,
+            1
+          ],
+          [
+            21,
+            1,
+            15,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 66,
+        "stop_censored": 3
+      },
+      "output_token_ids_sha256": "05824a837d2c3df860306c60c1795026da724014c6fe3915965e86c43d8283fb",
+      "native_receipt_sha256": "b0ddb97452ad72de37b22d244712ca846a1dd029a8ef4e7db3ac994491ae1e74"
+    },
+    {
+      "phase": "B2",
+      "gate_storage": "embedded",
+      "id": "en_pattern_waiting_time",
+      "family": "english_thinking",
+      "prompt_tokens": 164,
+      "output_tokens": 1135,
+      "reasoning_tokens": 1131,
+      "stop": "eos",
+      "native_generation_s": 17.374411000000002,
+      "native_tps": 65.32595551008893,
+      "http_first_payload_s": 0.42572670010849833,
+      "http_eof_s": 17.802066100295633,
+      "acceptance": {
+        "rounds": 272,
+        "proposed_draft_tokens": 1904,
+        "accepted_draft_tokens": 863,
+        "checked_draft_tokens": 1087,
+        "accepted_over_proposed": 0.4532563025210084,
+        "accepted_over_checked": 0.7939282428702852,
+        "mean_accepted_drafts": 3.172794117647059,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            231,
+            41,
+            0,
+            0
+          ],
+          [
+            181,
+            50,
+            41,
+            0
+          ],
+          [
+            142,
+            39,
+            91,
+            0
+          ],
+          [
+            112,
+            30,
+            130,
+            0
+          ],
+          [
+            84,
+            27,
+            160,
+            1
+          ],
+          [
+            66,
+            18,
+            187,
+            1
+          ],
+          [
+            47,
+            19,
+            205,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 814,
+        "stop_censored": 3
+      },
+      "output_token_ids_sha256": "7097507aec06fdeed36b3bc535c7fc06e0048fdaa8f68d3fe572f7558def1f47",
+      "native_receipt_sha256": "a5789a8137afe727e6e222441650fe0fab9562eab391ca210a1a10518f51389c"
+    },
+    {
+      "phase": "B2",
+      "gate_storage": "embedded",
+      "id": "en_nonadjacent_combinations",
+      "family": "english_thinking",
+      "prompt_tokens": 156,
+      "output_tokens": 450,
+      "reasoning_tokens": 445,
+      "stop": "eos",
+      "native_generation_s": 5.104375,
+      "native_tps": 88.15966695236929,
+      "http_first_payload_s": 0.40780270006507635,
+      "http_eof_s": 5.513812199700624,
+      "acceptance": {
+        "rounds": 81,
+        "proposed_draft_tokens": 567,
+        "accepted_draft_tokens": 369,
+        "checked_draft_tokens": 418,
+        "accepted_over_proposed": 0.6507936507936508,
+        "accepted_over_checked": 0.8827751196172249,
+        "mean_accepted_drafts": 4.555555555555555,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            73,
+            8,
+            0,
+            0
+          ],
+          [
+            68,
+            5,
+            8,
+            0
+          ],
+          [
+            62,
+            6,
+            13,
+            0
+          ],
+          [
+            53,
+            9,
+            19,
+            0
+          ],
+          [
+            46,
+            7,
+            28,
+            0
+          ],
+          [
+            36,
+            9,
+            35,
+            1
+          ],
+          [
+            31,
+            5,
+            44,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 147,
+        "stop_censored": 2
+      },
+      "output_token_ids_sha256": "1d6b8c341445f771314fddcd3f5aed54f1e86e80d85accae0e3156d3aa8a80c5",
+      "native_receipt_sha256": "536b74e58a4bc37319e5a269d9dd86916a93aa43ed41ce42f0bd38db44c611f0"
+    },
+    {
+      "phase": "B2",
+      "gate_storage": "embedded",
+      "id": "en_conditional_probability",
+      "family": "english_thinking",
+      "prompt_tokens": 168,
+      "output_tokens": 452,
+      "reasoning_tokens": 445,
+      "stop": "eos",
+      "native_generation_s": 5.7431865,
+      "native_tps": 78.70195404589421,
+      "http_first_payload_s": 0.416045299731195,
+      "http_eof_s": 6.160519199911505,
+      "acceptance": {
+        "rounds": 91,
+        "proposed_draft_tokens": 637,
+        "accepted_draft_tokens": 361,
+        "checked_draft_tokens": 424,
+        "accepted_over_proposed": 0.5667189952904239,
+        "accepted_over_checked": 0.8514150943396226,
+        "mean_accepted_drafts": 3.967032967032967,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            78,
+            12,
+            0,
+            1
+          ],
+          [
+            69,
+            9,
+            12,
+            1
+          ],
+          [
+            59,
+            10,
+            21,
+            1
+          ],
+          [
+            52,
+            7,
+            31,
+            1
+          ],
+          [
+            44,
+            8,
+            38,
+            1
+          ],
+          [
+            32,
+            12,
+            46,
+            1
+          ],
+          [
+            27,
+            5,
+            58,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 206,
+        "stop_censored": 7
+      },
+      "output_token_ids_sha256": "9d05eceeaab85fae58829e062fb1789b09a2438461f5e6063780d01dc72a32a9",
+      "native_receipt_sha256": "8923f6f5b3355bf530f36c3eb46e6e3b457891d6e728a3db17f1ea5cf4aca23a"
+    },
+    {
+      "phase": "B2",
+      "gate_storage": "embedded",
+      "id": "holdout_javascript_zip_longest",
+      "family": "code",
+      "prompt_tokens": 68,
+      "output_tokens": 133,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 1.1752856,
+      "native_tps": 113.16398329052954,
+      "http_first_payload_s": 0.3666232000105083,
+      "http_eof_s": 1.5429197000339627,
+      "acceptance": {
+        "rounds": 19,
+        "proposed_draft_tokens": 133,
+        "accepted_draft_tokens": 114,
+        "checked_draft_tokens": 117,
+        "accepted_over_proposed": 0.8571428571428571,
+        "accepted_over_checked": 0.9743589743589743,
+        "mean_accepted_drafts": 6.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            18,
+            1,
+            0,
+            0
+          ],
+          [
+            17,
+            1,
+            1,
+            0
+          ],
+          [
+            16,
+            1,
+            2,
+            0
+          ],
+          [
+            16,
+            0,
+            3,
+            0
+          ],
+          [
+            16,
+            0,
+            3,
+            0
+          ],
+          [
+            16,
+            0,
+            3,
+            0
+          ],
+          [
+            15,
+            0,
+            3,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 15,
+        "stop_censored": 1
+      },
+      "output_token_ids_sha256": "387e639586e03021ae962aa2ff398cddace54a664a84fcea7c88602717ba618b",
+      "native_receipt_sha256": "e6b64db6e38e94238b701f1b919556e75fabc6bd90e48d88196b055c53b19818"
+    },
+    {
+      "phase": "B2",
+      "gate_storage": "embedded",
+      "id": "holdout_python_histogram",
+      "family": "code",
+      "prompt_tokens": 52,
+      "output_tokens": 71,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.5559221000000001,
+      "native_tps": 127.715735711892,
+      "http_first_payload_s": 0.30996809992939234,
+      "http_eof_s": 0.8670163000933826,
+      "acceptance": {
+        "rounds": 9,
+        "proposed_draft_tokens": 63,
+        "accepted_draft_tokens": 62,
+        "checked_draft_tokens": 63,
+        "accepted_over_proposed": 0.9841269841269841,
+        "accepted_over_checked": 0.9841269841269841,
+        "mean_accepted_drafts": 6.888888888888889,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            8,
+            1,
+            0,
+            0
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 0
+      },
+      "output_token_ids_sha256": "79aa7a2600457952f7785f5de47e954b4542583207a09fd2c556f143e49b89f0",
+      "native_receipt_sha256": "cfdc057b63b9e59bb55e3a441a6a0a640f9b0e8bce513ab5648abbe0745c705c"
+    },
+    {
+      "phase": "B2",
+      "gate_storage": "embedded",
+      "id": "tool_lookup",
+      "family": "tool_call",
+      "prompt_tokens": 329,
+      "output_tokens": 32,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.2512934,
+      "native_tps": 127.3411876316688,
+      "http_first_payload_s": 0.7396191000007093,
+      "http_eof_s": 0.7398278000764549,
+      "acceptance": {
+        "rounds": 4,
+        "proposed_draft_tokens": 28,
+        "accepted_draft_tokens": 28,
+        "checked_draft_tokens": 28,
+        "accepted_over_proposed": 1.0,
+        "accepted_over_checked": 1.0,
+        "mean_accepted_drafts": 7.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 0
+      },
+      "output_token_ids_sha256": "856b3888d7f16e0e1ef1bb04a99caa44f75ecb15663dddb7ff3b2e96219e75b7",
+      "native_receipt_sha256": "bf19d2d467a82e56a5e21cb2e86c4ca54ebfeff19961ea7b6277a044eeeb57ce"
+    },
+    {
+      "phase": "B2",
+      "gate_storage": "embedded",
+      "id": "tool_result",
+      "family": "tool_result",
+      "prompt_tokens": 410,
+      "output_tokens": 6,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.06514950000000003,
+      "native_tps": 92.09587180254641,
+      "http_first_payload_s": 0.3029033001512289,
+      "http_eof_s": 0.36915040016174316,
+      "acceptance": {
+        "rounds": 1,
+        "proposed_draft_tokens": 7,
+        "accepted_draft_tokens": 5,
+        "checked_draft_tokens": 5,
+        "accepted_over_proposed": 0.7142857142857143,
+        "accepted_over_checked": 1.0,
+        "mean_accepted_drafts": 5.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 2
+      },
+      "output_token_ids_sha256": "7e318e2f6d9188b0d2670f2e39897ea85cfa47a46c29d02a3fecbbae364ba22d",
+      "native_receipt_sha256": "ec62e09d2fa6f2ddf2b76375a63ae3d52d7881061c352d69ff6605ea4d0eaf34"
+    },
+    {
+      "phase": "B2",
+      "gate_storage": "embedded",
+      "id": "vision_ocr",
+      "family": "vision",
+      "prompt_tokens": 100,
+      "output_tokens": 3,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.08510380000000006,
+      "native_tps": 35.25106986997053,
+      "http_first_payload_s": 0.599620200227946,
+      "http_eof_s": 0.6859559002332389,
+      "acceptance": {
+        "rounds": 0,
+        "proposed_draft_tokens": 0,
+        "accepted_draft_tokens": 0,
+        "checked_draft_tokens": 0,
+        "accepted_over_proposed": null,
+        "accepted_over_checked": null,
+        "mean_accepted_drafts": null,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 0
+      },
+      "output_token_ids_sha256": "6d76de071af02114ac27f969d67fbb001f317c2fedfd9df3d4d726d446b1739a",
+      "native_receipt_sha256": "f5f4bd036882b8e985df88ac9425f16ff2030e0daa3ab6635d9218c4a3af64c1"
+    },
+    {
+      "phase": "B2",
+      "gate_storage": "embedded",
+      "id": "after_vision",
+      "family": "boundary",
+      "prompt_tokens": 23,
+      "output_tokens": 1,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.1763381,
+      "native_tps": 5.670924207530874,
+      "http_first_payload_s": 0.28525999980047345,
+      "http_eof_s": 0.46271329978480935,
+      "acceptance": {
+        "rounds": 1,
+        "proposed_draft_tokens": 7,
+        "accepted_draft_tokens": 0,
+        "checked_draft_tokens": 0,
+        "accepted_over_proposed": 0.0,
+        "accepted_over_checked": null,
+        "mean_accepted_drafts": 0.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 7
+      },
+      "output_token_ids_sha256": "eb3c4eb5d08cfdfeccc15734ae86cde2e5f247299e3b6d5742dc35e67da62fad",
+      "native_receipt_sha256": "cc97af9e4234136c4203a2a32b00ea6f201e838968a895158e174d9e4f437dde"
+    },
+    {
+      "phase": "A3",
+      "gate_storage": "external",
+      "id": "warmup",
+      "family": "boundary",
+      "prompt_tokens": 17,
+      "output_tokens": 1,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.062722,
+      "native_tps": 15.943369152769364,
+      "http_first_payload_s": 0.2599090002477169,
+      "http_eof_s": 0.3237209999933839,
+      "acceptance": {
+        "rounds": 1,
+        "proposed_draft_tokens": 7,
+        "accepted_draft_tokens": 0,
+        "checked_draft_tokens": 0,
+        "accepted_over_proposed": 0.0,
+        "accepted_over_checked": null,
+        "mean_accepted_drafts": 0.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 7
+      },
+      "output_token_ids_sha256": "fdaf75c43612dfe7c9e51a5d02472d729702822abce4fde6d648c8fbab14dce9",
+      "native_receipt_sha256": "2b213dc5aa377ff0b8ca2c68e8ae845d67c39c03ebaa2e62bd6f541a0b293cf6"
+    },
+    {
+      "phase": "A3",
+      "gate_storage": "external",
+      "id": "zh_control",
+      "family": "chinese_thinking",
+      "prompt_tokens": 119,
+      "output_tokens": 219,
+      "reasoning_tokens": 214,
+      "stop": "eos",
+      "native_generation_s": 2.3711712,
+      "native_tps": 92.35942136949032,
+      "http_first_payload_s": 0.3887565000914037,
+      "http_eof_s": 2.7611358002759516,
+      "acceptance": {
+        "rounds": 38,
+        "proposed_draft_tokens": 266,
+        "accepted_draft_tokens": 181,
+        "checked_draft_tokens": 197,
+        "accepted_over_proposed": 0.6804511278195489,
+        "accepted_over_checked": 0.9187817258883249,
+        "mean_accepted_drafts": 4.7631578947368425,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            33,
+            5,
+            0,
+            0
+          ],
+          [
+            30,
+            3,
+            5,
+            0
+          ],
+          [
+            27,
+            3,
+            8,
+            0
+          ],
+          [
+            25,
+            2,
+            11,
+            0
+          ],
+          [
+            23,
+            1,
+            13,
+            1
+          ],
+          [
+            22,
+            1,
+            14,
+            1
+          ],
+          [
+            21,
+            1,
+            15,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 66,
+        "stop_censored": 3
+      },
+      "output_token_ids_sha256": "05824a837d2c3df860306c60c1795026da724014c6fe3915965e86c43d8283fb",
+      "native_receipt_sha256": "7b0cd46c31b1f1fca7b7101b942ce885153bca23c6ecd46b2e1b35ee0967d338"
+    },
+    {
+      "phase": "A3",
+      "gate_storage": "external",
+      "id": "en_pattern_waiting_time",
+      "family": "english_thinking",
+      "prompt_tokens": 164,
+      "output_tokens": 1135,
+      "reasoning_tokens": 1131,
+      "stop": "eos",
+      "native_generation_s": 17.39225,
+      "native_tps": 65.25895154450977,
+      "http_first_payload_s": 0.4144578999839723,
+      "http_eof_s": 17.80841220030561,
+      "acceptance": {
+        "rounds": 272,
+        "proposed_draft_tokens": 1904,
+        "accepted_draft_tokens": 863,
+        "checked_draft_tokens": 1087,
+        "accepted_over_proposed": 0.4532563025210084,
+        "accepted_over_checked": 0.7939282428702852,
+        "mean_accepted_drafts": 3.172794117647059,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            231,
+            41,
+            0,
+            0
+          ],
+          [
+            181,
+            50,
+            41,
+            0
+          ],
+          [
+            142,
+            39,
+            91,
+            0
+          ],
+          [
+            112,
+            30,
+            130,
+            0
+          ],
+          [
+            84,
+            27,
+            160,
+            1
+          ],
+          [
+            66,
+            18,
+            187,
+            1
+          ],
+          [
+            47,
+            19,
+            205,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 814,
+        "stop_censored": 3
+      },
+      "output_token_ids_sha256": "7097507aec06fdeed36b3bc535c7fc06e0048fdaa8f68d3fe572f7558def1f47",
+      "native_receipt_sha256": "6f73e56657fc67b923891706fb9480c7c5b2c8bef53f86ed15a7f5da7849c708"
+    },
+    {
+      "phase": "A3",
+      "gate_storage": "external",
+      "id": "en_nonadjacent_combinations",
+      "family": "english_thinking",
+      "prompt_tokens": 156,
+      "output_tokens": 450,
+      "reasoning_tokens": 445,
+      "stop": "eos",
+      "native_generation_s": 5.110176200000001,
+      "native_tps": 88.0595858906,
+      "http_first_payload_s": 0.4211789998225868,
+      "http_eof_s": 5.532640199642628,
+      "acceptance": {
+        "rounds": 81,
+        "proposed_draft_tokens": 567,
+        "accepted_draft_tokens": 369,
+        "checked_draft_tokens": 418,
+        "accepted_over_proposed": 0.6507936507936508,
+        "accepted_over_checked": 0.8827751196172249,
+        "mean_accepted_drafts": 4.555555555555555,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            73,
+            8,
+            0,
+            0
+          ],
+          [
+            68,
+            5,
+            8,
+            0
+          ],
+          [
+            62,
+            6,
+            13,
+            0
+          ],
+          [
+            53,
+            9,
+            19,
+            0
+          ],
+          [
+            46,
+            7,
+            28,
+            0
+          ],
+          [
+            36,
+            9,
+            35,
+            1
+          ],
+          [
+            31,
+            5,
+            44,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 147,
+        "stop_censored": 2
+      },
+      "output_token_ids_sha256": "1d6b8c341445f771314fddcd3f5aed54f1e86e80d85accae0e3156d3aa8a80c5",
+      "native_receipt_sha256": "b73f0c8b0a08a3363ea2927fcb9c3a9134923fbe3be2fb80e5db5e922b614567"
+    },
+    {
+      "phase": "A3",
+      "gate_storage": "external",
+      "id": "en_conditional_probability",
+      "family": "english_thinking",
+      "prompt_tokens": 168,
+      "output_tokens": 452,
+      "reasoning_tokens": 445,
+      "stop": "eos",
+      "native_generation_s": 5.745671300000001,
+      "native_tps": 78.66791822915452,
+      "http_first_payload_s": 0.41863169986754656,
+      "http_eof_s": 6.165745900012553,
+      "acceptance": {
+        "rounds": 91,
+        "proposed_draft_tokens": 637,
+        "accepted_draft_tokens": 361,
+        "checked_draft_tokens": 424,
+        "accepted_over_proposed": 0.5667189952904239,
+        "accepted_over_checked": 0.8514150943396226,
+        "mean_accepted_drafts": 3.967032967032967,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            78,
+            12,
+            0,
+            1
+          ],
+          [
+            69,
+            9,
+            12,
+            1
+          ],
+          [
+            59,
+            10,
+            21,
+            1
+          ],
+          [
+            52,
+            7,
+            31,
+            1
+          ],
+          [
+            44,
+            8,
+            38,
+            1
+          ],
+          [
+            32,
+            12,
+            46,
+            1
+          ],
+          [
+            27,
+            5,
+            58,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 206,
+        "stop_censored": 7
+      },
+      "output_token_ids_sha256": "9d05eceeaab85fae58829e062fb1789b09a2438461f5e6063780d01dc72a32a9",
+      "native_receipt_sha256": "95caa7973fb7d963458398e70749557e6e5f12de56b3a7f466a97ee060ba595a"
+    },
+    {
+      "phase": "A3",
+      "gate_storage": "external",
+      "id": "holdout_javascript_zip_longest",
+      "family": "code",
+      "prompt_tokens": 68,
+      "output_tokens": 133,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 1.1759962,
+      "native_tps": 113.09560354021552,
+      "http_first_payload_s": 0.3765392997302115,
+      "http_eof_s": 1.5535919000394642,
+      "acceptance": {
+        "rounds": 19,
+        "proposed_draft_tokens": 133,
+        "accepted_draft_tokens": 114,
+        "checked_draft_tokens": 117,
+        "accepted_over_proposed": 0.8571428571428571,
+        "accepted_over_checked": 0.9743589743589743,
+        "mean_accepted_drafts": 6.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            18,
+            1,
+            0,
+            0
+          ],
+          [
+            17,
+            1,
+            1,
+            0
+          ],
+          [
+            16,
+            1,
+            2,
+            0
+          ],
+          [
+            16,
+            0,
+            3,
+            0
+          ],
+          [
+            16,
+            0,
+            3,
+            0
+          ],
+          [
+            16,
+            0,
+            3,
+            0
+          ],
+          [
+            15,
+            0,
+            3,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 15,
+        "stop_censored": 1
+      },
+      "output_token_ids_sha256": "387e639586e03021ae962aa2ff398cddace54a664a84fcea7c88602717ba618b",
+      "native_receipt_sha256": "bb23c23b4c353d839da0f74df5558bb32aea09c7040adfb3c2e6f0b914877767"
+    },
+    {
+      "phase": "A3",
+      "gate_storage": "external",
+      "id": "holdout_python_histogram",
+      "family": "code",
+      "prompt_tokens": 52,
+      "output_tokens": 71,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.5562467,
+      "native_tps": 127.64120668041717,
+      "http_first_payload_s": 0.3101184996776283,
+      "http_eof_s": 0.8675951999612153,
+      "acceptance": {
+        "rounds": 9,
+        "proposed_draft_tokens": 63,
+        "accepted_draft_tokens": 62,
+        "checked_draft_tokens": 63,
+        "accepted_over_proposed": 0.9841269841269841,
+        "accepted_over_checked": 0.9841269841269841,
+        "mean_accepted_drafts": 6.888888888888889,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            8,
+            1,
+            0,
+            0
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 0
+      },
+      "output_token_ids_sha256": "79aa7a2600457952f7785f5de47e954b4542583207a09fd2c556f143e49b89f0",
+      "native_receipt_sha256": "5e513f6ebb4c60de0b390f5c5b4afc946d8ff629951e143507f547317113c53c"
+    },
+    {
+      "phase": "A3",
+      "gate_storage": "external",
+      "id": "tool_lookup",
+      "family": "tool_call",
+      "prompt_tokens": 329,
+      "output_tokens": 32,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.2507672000000001,
+      "native_tps": 127.60839535633045,
+      "http_first_payload_s": 0.7530047995969653,
+      "http_eof_s": 0.7531599998474121,
+      "acceptance": {
+        "rounds": 4,
+        "proposed_draft_tokens": 28,
+        "accepted_draft_tokens": 28,
+        "checked_draft_tokens": 28,
+        "accepted_over_proposed": 1.0,
+        "accepted_over_checked": 1.0,
+        "mean_accepted_drafts": 7.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            0
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 0
+      },
+      "output_token_ids_sha256": "856b3888d7f16e0e1ef1bb04a99caa44f75ecb15663dddb7ff3b2e96219e75b7",
+      "native_receipt_sha256": "a18125878e75b46ebd2a6a7348fec48b6541438a62d77384860cee6c21748f27"
+    },
+    {
+      "phase": "A3",
+      "gate_storage": "external",
+      "id": "tool_result",
+      "family": "tool_result",
+      "prompt_tokens": 410,
+      "output_tokens": 6,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.06507760000000001,
+      "native_tps": 92.19762253064033,
+      "http_first_payload_s": 0.316259799990803,
+      "http_eof_s": 0.382475099992007,
+      "acceptance": {
+        "rounds": 1,
+        "proposed_draft_tokens": 7,
+        "accepted_draft_tokens": 5,
+        "checked_draft_tokens": 5,
+        "accepted_over_proposed": 0.7142857142857143,
+        "accepted_over_checked": 1.0,
+        "mean_accepted_drafts": 5.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 2
+      },
+      "output_token_ids_sha256": "7e318e2f6d9188b0d2670f2e39897ea85cfa47a46c29d02a3fecbbae364ba22d",
+      "native_receipt_sha256": "050afc4837fc12f6d5060b6e38875a8b011664e98ba6690d2763771ef5699134"
+    },
+    {
+      "phase": "A3",
+      "gate_storage": "external",
+      "id": "vision_ocr",
+      "family": "vision",
+      "prompt_tokens": 100,
+      "output_tokens": 3,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.0851153,
+      "native_tps": 35.24630706817693,
+      "http_first_payload_s": 0.5958318002521992,
+      "http_eof_s": 0.6820352002978325,
+      "acceptance": {
+        "rounds": 0,
+        "proposed_draft_tokens": 0,
+        "accepted_draft_tokens": 0,
+        "checked_draft_tokens": 0,
+        "accepted_over_proposed": null,
+        "accepted_over_checked": null,
+        "mean_accepted_drafts": null,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 0
+      },
+      "output_token_ids_sha256": "6d76de071af02114ac27f969d67fbb001f317c2fedfd9df3d4d726d446b1739a",
+      "native_receipt_sha256": "06eeb5032557919fc53d14647056f4a37590a2d635fb8fe6996fdc49e01d8143"
+    },
+    {
+      "phase": "A3",
+      "gate_storage": "external",
+      "id": "after_vision",
+      "family": "boundary",
+      "prompt_tokens": 23,
+      "output_tokens": 1,
+      "reasoning_tokens": null,
+      "stop": "eos",
+      "native_generation_s": 0.17843499999999995,
+      "native_tps": 5.604281671196796,
+      "http_first_payload_s": 0.2674816995859146,
+      "http_eof_s": 0.44695879984647036,
+      "acceptance": {
+        "rounds": 1,
+        "proposed_draft_tokens": 7,
+        "accepted_draft_tokens": 0,
+        "checked_draft_tokens": 0,
+        "accepted_over_proposed": 0.0,
+        "accepted_over_checked": null,
+        "mean_accepted_drafts": 0.0,
+        "by_position_accepted_rejected_unchecked_censored": [
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ]
+        ],
+        "anchor_excluded": true,
+        "unchecked_after_rejection": 0,
+        "stop_censored": 7
+      },
+      "output_token_ids_sha256": "eb3c4eb5d08cfdfeccc15734ae86cde2e5f247299e3b6d5742dc35e67da62fad",
+      "native_receipt_sha256": "a4dab1a752b49412242a6f1f7e808cc13a3297b8bbc265257f77b10e8fd3ecba"
+    }
+  ]
+}

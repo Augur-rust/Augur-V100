@@ -1,0 +1,1676 @@
+{
+ "schema": "augur-english-thinking-proposal-calibration-v1",
+ "date": "2026-10-16",
+ "hardware": "single Tesla V100 32 GB (SM70), Windows, TCC",
+ "target": "QUASAR Qwen3.8-27B NVFP4, sampling temperature=1 top_p=0.95 top_k=20 min_p=0 penalties=0 seed=0",
+ "draft": "DFlash2 Q8_0 + embedded FP32 gate0.45, fixed B8, unchanged weights",
+ "method": "one request per task per arm; up to 3072 output tokens; native decode tokens / native decode seconds; no prefix cache; prompts not published",
+ "arms": {
+  "G0": "sampled target, deterministic greedy draft, token-equality acceptance (sampling5 product)",
+  "B7": "sampled target, all 7 draft rows proposed from q=softmax(score), sparse p/q rejection",
+  "TQ3": "B7 plus per-row calibration T=0.875x3,0.75x4 and pair scale 1,1.5x6 (new default)",
+  "BQ3": "TQ3 calibration with Sun et al. 2025 block verification (opt-in)"
+ },
+ "summary": {
+  "G0": {
+   "native_tps": 46.21,
+   "tokens_per_round": 3.028,
+   "gain_vs_G0_pct": 0.0
+  },
+  "B7": {
+   "native_tps": 53.64,
+   "tokens_per_round": 3.519,
+   "gain_vs_G0_pct": 16.06
+  },
+  "TQ3": {
+   "native_tps": 55.49,
+   "tokens_per_round": 3.642,
+   "gain_vs_G0_pct": 20.08
+  },
+  "BQ3": {
+   "native_tps": 55.87,
+   "tokens_per_round": 3.67,
+   "gain_vs_G0_pct": 20.9
+  }
+ },
+ "rows": [
+  {
+   "case": "english_concurrency",
+   "set": "screen6",
+   "G0": {
+    "output_tokens": 3072,
+    "rounds": 1210,
+    "native_decode_s": 79.3118,
+    "native_tps": 38.73,
+    "tokens_per_round": 2.539,
+    "accepted_drafts_per_round": 1.539,
+    "finish": "length",
+    "verification": "deterministic_draft_target_sample_equality_v1",
+    "proposal_calibration": null,
+    "trajectory_sha256": "818b71f1e683af102dd515f54f7b457c2d500720127b7745282742ac8eb8b1a4",
+    "output_sha256": "e802cfdbee664ede565d76e5620db8e03f7251f7a4942bf6ddc67251251b0ea3",
+    "result_file_sha256": "e33a524b6fa168c80b03ec3723344a679378b2b69c4cbf1fb40a7a01dabbfab9"
+   },
+   "B7": {
+    "output_tokens": 3072,
+    "rounds": 1176,
+    "native_decode_s": 77.1752,
+    "native_tps": 39.81,
+    "tokens_per_round": 2.612,
+    "accepted_drafts_per_round": 1.611,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ],
+     "temperatures": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    "trajectory_sha256": "df59a9877e37fcc53b12b14e1316dbbe1c8d0f8c652b1c90663e39ff94309189",
+    "output_sha256": "cb1e9dff0173b0630cfe5b4bc8f6928821135ac5547d0b795ae5f77b43cccdfe",
+    "result_file_sha256": "f0b5c6d8116a58f442573c1abfcab6c9d10a30e792c9cd69d1893d67d2bcdf3c"
+   },
+   "TQ3": {
+    "output_tokens": 3072,
+    "rounds": 1133,
+    "native_decode_s": 74.3845,
+    "native_tps": 41.3,
+    "tokens_per_round": 2.711,
+    "accepted_drafts_per_round": 1.711,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "592689af6546f3b05d80b9f3b3227a8a20092f6dea012f8dc8628b01178c6190",
+    "output_sha256": "b8ab4053713299b6f5a7d64c81658fb4e2706f5d84ab74c222d4d36df2ec7ed1",
+    "result_file_sha256": "6e60faced47d3ae031c9fca46a7379b7856fe6b731b25a7311efc53aa9df2120"
+   },
+   "BQ3": {
+    "output_tokens": 3072,
+    "rounds": 1044,
+    "native_decode_s": 68.6218,
+    "native_tps": 44.77,
+    "tokens_per_round": 2.943,
+    "accepted_drafts_per_round": 1.943,
+    "finish": "length",
+    "verification": "block_verification_sun2025_sparse_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "1b5883889c5d010e65a0ed8a94dd45cf2ee59ff6845537ed19b07a017175d7f1",
+    "output_sha256": "63e585f871ffd585a00b9393834a596add4f5f6cafd925446e367790fcf1b2c7",
+    "result_file_sha256": "bd7fca574d4f9831f226051004f6282222c346570132b4c532694a478255834f"
+   }
+  },
+  {
+   "case": "english_walk_holdout",
+   "set": "screen6",
+   "G0": {
+    "output_tokens": 4096,
+    "rounds": 1584,
+    "native_decode_s": 104.6911,
+    "native_tps": 39.12,
+    "tokens_per_round": 2.586,
+    "accepted_drafts_per_round": 1.585,
+    "finish": "length",
+    "verification": "deterministic_draft_target_sample_equality_v1",
+    "proposal_calibration": null,
+    "trajectory_sha256": "01cd0e9501d366f24aa225b1b72bf8b2eadf0ebb6c121bbd90884237a2b2d193",
+    "output_sha256": "4c131f5f4960ebe89ce41baf200bebfbb0f94f6e642dd4ca6aad4d265c3f52d4",
+    "result_file_sha256": "5ed9ac0aca63686276a71b9e05458938e2231ab91530de5843f303c9c0e25c4f"
+   },
+   "B7": {
+    "output_tokens": 4096,
+    "rounds": 1223,
+    "native_decode_s": 80.8558,
+    "native_tps": 50.66,
+    "tokens_per_round": 3.349,
+    "accepted_drafts_per_round": 2.348,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ],
+     "temperatures": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    "trajectory_sha256": "65d551a6b4f18f1b0ef72ced6a6122caa202978ab51bb7799c592a339541e69a",
+    "output_sha256": "1983b9c29783163700b3e84f1d17f3da1a2793064424675f828745f443c52e51",
+    "result_file_sha256": "6823c647569fff2df5f0b309ab8e4a43f2ef95f37ed9101e9f4149c9a27e06a1"
+   },
+   "TQ3": {
+    "output_tokens": 4096,
+    "rounds": 1115,
+    "native_decode_s": 73.7902,
+    "native_tps": 55.51,
+    "tokens_per_round": 3.674,
+    "accepted_drafts_per_round": 2.674,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "136d498f81fea4321dc688a417a70c019da75fe36e13969ea1b9ad53d6abbf8e",
+    "output_sha256": "570510eeb027b41163b6707596ab8050db6018459a37caae81956296a18a025a",
+    "result_file_sha256": "fc3177ac3134fc4f3ae58f5a3bf9e5f0b2e836a5d4f329c507b6d2034bafaad5"
+   },
+   "BQ3": {
+    "output_tokens": 4096,
+    "rounds": 1058,
+    "native_decode_s": 69.8449,
+    "native_tps": 58.64,
+    "tokens_per_round": 3.871,
+    "accepted_drafts_per_round": 2.871,
+    "finish": "length",
+    "verification": "block_verification_sun2025_sparse_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "f546a3accb80e9154ab71cd1369d3c75ca80112f15d330505bb19f494ec9bf54",
+    "output_sha256": "5eea40079471ecaab19d0d5d28e1099b7dc2b271ae1d5d927a1c13451d0c01c8",
+    "result_file_sha256": "c55258c53ecdd5b76a29e7529cb877ed8706246033b8860b99c67d0b4763ac04"
+   }
+  },
+  {
+   "case": "english_long",
+   "set": "screen6",
+   "G0": {
+    "output_tokens": 3072,
+    "rounds": 1169,
+    "native_decode_s": 76.3863,
+    "native_tps": 40.22,
+    "tokens_per_round": 2.628,
+    "accepted_drafts_per_round": 1.627,
+    "finish": "length",
+    "verification": "deterministic_draft_target_sample_equality_v1",
+    "proposal_calibration": null,
+    "trajectory_sha256": "42ccb9a93cea484d69cbb53a816dcbbc788c968255364059514c34a5feac8e2f",
+    "output_sha256": "ff62aadbb320cf0e1c49b3b5021d6ebc802527f70efe655617a4dac96ecfc132",
+    "result_file_sha256": "2b455667b9532bdbd4468bc372fbb77ff4e86e82cf3a38396079e9f5287e115f"
+   },
+   "B7": {
+    "output_tokens": 3072,
+    "rounds": 860,
+    "native_decode_s": 56.1861,
+    "native_tps": 54.68,
+    "tokens_per_round": 3.572,
+    "accepted_drafts_per_round": 2.572,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ],
+     "temperatures": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    "trajectory_sha256": "3ee7a48d7164b9f434764d89b7b9207d849e611149a13d0cf4314b282d778b95",
+    "output_sha256": "1555e352ea6802abf15109cccd6f9407cda58a3b8058984de70a0188d0688f1e",
+    "result_file_sha256": "d08193b270ab4dff1ce0478dc58f349b2c8b8b0c876917cbee1582b7f3eb2fba"
+   },
+   "TQ3": {
+    "output_tokens": 3072,
+    "rounds": 859,
+    "native_decode_s": 56.2151,
+    "native_tps": 54.65,
+    "tokens_per_round": 3.576,
+    "accepted_drafts_per_round": 2.576,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "6d13cd718c7255de72eed9528f4fcfb189d07728362094da1f3fc6a274c78104",
+    "output_sha256": "e860dd8c163eb9fd752ff4d00cff019fd7d9a2d5d77948d7921c922c19bef4c8",
+    "result_file_sha256": "22f5e4548309f8a9730bd76895171d7ea423dffe63920128a08c3e0efe271aae"
+   },
+   "BQ3": {
+    "output_tokens": 3072,
+    "rounds": 926,
+    "native_decode_s": 60.675,
+    "native_tps": 50.63,
+    "tokens_per_round": 3.317,
+    "accepted_drafts_per_round": 2.316,
+    "finish": "length",
+    "verification": "block_verification_sun2025_sparse_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "b79831688dd9a1378334be0c66051df7bd37ff0f6343abde082420afa3b8270f",
+    "output_sha256": "7c174ba42bb63b04ad11057a3ae780946cb25a24bd19ee5c1d210efd30e1f136",
+    "result_file_sha256": "50103b80f77f33f7925aa27c1a6dbb0cd30c2507827f3070ac3e828dc12325d1"
+   }
+  },
+  {
+   "case": "english_markov_holdout",
+   "set": "screen6",
+   "G0": {
+    "output_tokens": 3072,
+    "rounds": 674,
+    "native_decode_s": 44.1888,
+    "native_tps": 69.52,
+    "tokens_per_round": 4.558,
+    "accepted_drafts_per_round": 3.558,
+    "finish": "length",
+    "verification": "deterministic_draft_target_sample_equality_v1",
+    "proposal_calibration": null,
+    "trajectory_sha256": "a75f8ac1b848794479d58c48026e5d34f0703f85a48375d4e685cab46fb99e3e",
+    "output_sha256": "eb58ae2f4ba13a0f5da25e73734a147ba1e8e7346fdceee8ed8250e45834a1e2",
+    "result_file_sha256": "135341e21e687fef82c6aeecb580fac9362af876a8f57880f1a3be502c1383cd"
+   },
+   "B7": {
+    "output_tokens": 3072,
+    "rounds": 591,
+    "native_decode_s": 38.7171,
+    "native_tps": 79.34,
+    "tokens_per_round": 5.198,
+    "accepted_drafts_per_round": 4.196,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ],
+     "temperatures": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    "trajectory_sha256": "2498ed678ecd1b25f494799857b35ed6c5a584a9ea985b2ac9ab72a86638b0a4",
+    "output_sha256": "ca91fbe7c81994f5484745df0c88a1a858c22fe804b7b02a86f1c5a8ce8af573",
+    "result_file_sha256": "b158ba9f12b89e3ce9186f506f8d3c85558842efc514133d0b26cd098f300f4e"
+   },
+   "TQ3": {
+    "output_tokens": 3072,
+    "rounds": 627,
+    "native_decode_s": 41.2084,
+    "native_tps": 74.55,
+    "tokens_per_round": 4.9,
+    "accepted_drafts_per_round": 3.9,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "11b0a89c599c6190985ce3b2e04aec4241881084f7c87e77a87af3548f2be4da",
+    "output_sha256": "8febc72ee4f52da8654e020434d52672051e9bd6eeb484ec9a85089d79a11c96",
+    "result_file_sha256": "bebd72a19d59df7fe1ffa8e504a62002eca1841bde6505bc137eba080dadb696"
+   },
+   "BQ3": {
+    "output_tokens": 3072,
+    "rounds": 639,
+    "native_decode_s": 41.9312,
+    "native_tps": 73.26,
+    "tokens_per_round": 4.808,
+    "accepted_drafts_per_round": 3.808,
+    "finish": "length",
+    "verification": "block_verification_sun2025_sparse_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "81997082df79c8d8f52acd1aded2b0aeaa77f3a7021dba637983cf495cdf375d",
+    "output_sha256": "027781df651848c765acc1e392b191a3e378150e9c2c034790f9d92354f947a2",
+    "result_file_sha256": "718588b9b8bb29843d6df2a4e926a07a39ec3e87f62532ea65dce602052676d2"
+   }
+  },
+  {
+   "case": "english_raft_holdout",
+   "set": "screen6",
+   "G0": {
+    "output_tokens": 3072,
+    "rounds": 1170,
+    "native_decode_s": 76.4476,
+    "native_tps": 40.18,
+    "tokens_per_round": 2.626,
+    "accepted_drafts_per_round": 1.626,
+    "finish": "length",
+    "verification": "deterministic_draft_target_sample_equality_v1",
+    "proposal_calibration": null,
+    "trajectory_sha256": "81e11addb2b866e19a878083a940ebb2d860b312a45b1538d19ea65e0393745a",
+    "output_sha256": "ec7468a92dd723ae9cdca69d74f493fb9f7c8d562ec40e7253a2f9ebaaa6e63b",
+    "result_file_sha256": "0c1d317d80cc1531e31cf73af935322b04eda427fb9d7880833ea1649d4bc12f"
+   },
+   "B7": {
+    "output_tokens": 3072,
+    "rounds": 970,
+    "native_decode_s": 63.7044,
+    "native_tps": 48.22,
+    "tokens_per_round": 3.167,
+    "accepted_drafts_per_round": 2.167,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ],
+     "temperatures": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    "trajectory_sha256": "8169764021441dd9df84b6783099e8faf4dad06fcd28556f363a91cd2e46e064",
+    "output_sha256": "e5d888381ab4ff2bc2f687ea90a94d08a5753029836764a802f74fe35f9c4290",
+    "result_file_sha256": "a5c417e5dcd44d47428810be74d47fed4aee131f9ac92e8932f290840210d9c0"
+   },
+   "TQ3": {
+    "output_tokens": 3072,
+    "rounds": 982,
+    "native_decode_s": 64.5015,
+    "native_tps": 47.63,
+    "tokens_per_round": 3.128,
+    "accepted_drafts_per_round": 2.128,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "661cf87003e312488a6883238c1c2b64d68ce21afc1514293eeaabebda2872c9",
+    "output_sha256": "bef2e634573d870e672fdd6806db5df3ae2a5e7ad6244b277eea1917f01fdd60",
+    "result_file_sha256": "76970ff8cdbb41c69db6e3993006bf2bf575841a5004283e119f1ac8c3e67427"
+   },
+   "BQ3": {
+    "output_tokens": 3072,
+    "rounds": 920,
+    "native_decode_s": 60.3806,
+    "native_tps": 50.88,
+    "tokens_per_round": 3.339,
+    "accepted_drafts_per_round": 2.339,
+    "finish": "length",
+    "verification": "block_verification_sun2025_sparse_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "7bbf5bc33491b470aad7980897bf9c59fdbf5a3e8fbc57201ff4c28edc49dc8b",
+    "output_sha256": "afbe40d1e43a4d8b8dfedd9a2097915591674a47eb3cc687368e69ce6c0bcfae",
+    "result_file_sha256": "6e672c115edac5d06a98f7635f6540e782e831158da1050c1d81d8f27878968c"
+   }
+  },
+  {
+   "case": "english_graph_holdout",
+   "set": "screen6",
+   "G0": {
+    "output_tokens": 3072,
+    "rounds": 948,
+    "native_decode_s": 62.0466,
+    "native_tps": 49.51,
+    "tokens_per_round": 3.241,
+    "accepted_drafts_per_round": 2.241,
+    "finish": "length",
+    "verification": "deterministic_draft_target_sample_equality_v1",
+    "proposal_calibration": null,
+    "trajectory_sha256": "bc6b279641120681d5731b9564abbb90532d4a9c8501e3676fcb85fbb9b2b355",
+    "output_sha256": "57603128ee7c3f3992fc5a188e9cab501c516f681089f4016237962a1d60743b",
+    "result_file_sha256": "9154b1bffa6607a6e460828d8f0c266fe44a630fad97ed457786af89d15c432c"
+   },
+   "B7": {
+    "output_tokens": 3072,
+    "rounds": 894,
+    "native_decode_s": 58.6199,
+    "native_tps": 52.41,
+    "tokens_per_round": 3.436,
+    "accepted_drafts_per_round": 2.436,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ],
+     "temperatures": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    "trajectory_sha256": "1a4045b545ccd6c13a5b77de110bac45ca24e013887455c7ef0138c3b59bd7f7",
+    "output_sha256": "c4a056cdab15b5d9ba3628d4b78679f892711d82d76a9affcc059640d3ba988b",
+    "result_file_sha256": "1b43499f54af020a32028e7f85f3830a4a1dd91027765cc5c221538f4d22fa11"
+   },
+   "TQ3": {
+    "output_tokens": 3072,
+    "rounds": 827,
+    "native_decode_s": 54.3359,
+    "native_tps": 56.54,
+    "tokens_per_round": 3.715,
+    "accepted_drafts_per_round": 2.715,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "17bcd9610d3e8fe9ba9e63842a8209e85f54aceefa8ab68268b351f42f419be4",
+    "output_sha256": "c3ce587d33ce15b26ad3d1f70c37f89e8ece738530a3bd6f56107c212e3a8d73",
+    "result_file_sha256": "f75bff1f5a67521bb5eb824024c02202e093178f9f601978ff881ce0a5ff5c55"
+   },
+   "BQ3": {
+    "output_tokens": 3072,
+    "rounds": 770,
+    "native_decode_s": 50.649,
+    "native_tps": 60.65,
+    "tokens_per_round": 3.99,
+    "accepted_drafts_per_round": 2.99,
+    "finish": "length",
+    "verification": "block_verification_sun2025_sparse_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "fce61c22fa6bc73096d2e5176c5293d13157816d3180c54fe62e4d9b39ac6b55",
+    "output_sha256": "9636cdf1805a8c9cef8aec49101603079005b995dd15e8dc4665a05fdf5a397d",
+    "result_file_sha256": "929a80ee5a135e939a165abf7ed9aba843eb3a0a55ea5732fc0c7e8206c38f4e"
+   }
+  },
+  {
+   "case": "english_two_sixes",
+   "set": "holdout8",
+   "G0": {
+    "output_tokens": 3072,
+    "rounds": 848,
+    "native_decode_s": 55.6186,
+    "native_tps": 55.23,
+    "tokens_per_round": 3.623,
+    "accepted_drafts_per_round": 2.623,
+    "finish": "length",
+    "verification": "deterministic_draft_target_sample_equality_v1",
+    "proposal_calibration": null,
+    "trajectory_sha256": "c936b2e8d77bf43a4de89fc95a0daa18c07c06aaee3d85f2446ee0d2db3826e0",
+    "output_sha256": "d50053e686fde0857e344c4caac497be76ced7ca2584c11b3f72f126670c20a6",
+    "result_file_sha256": "d89c9181bda5d4d885cd7b84fc7fdd925a0bba94104c4d89e38b9bc2723b2a72"
+   },
+   "B7": {
+    "output_tokens": 3072,
+    "rounds": 722,
+    "native_decode_s": 47.3495,
+    "native_tps": 64.88,
+    "tokens_per_round": 4.255,
+    "accepted_drafts_per_round": 3.255,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ],
+     "temperatures": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    "trajectory_sha256": "09faf46693ff865c8d4358f6990fe0cdf3f99b803eaacbe52712854125cca248",
+    "output_sha256": "d56f1d951b7accd2c85f6e6f07f9adcb64eb24b07920a1696388b9989242ac9d",
+    "result_file_sha256": "c57bc8f4d0a162ffb311a2f695c82bba0b251ac209b2e3380cd02a9e97796649"
+   },
+   "TQ3": {
+    "output_tokens": 3072,
+    "rounds": 668,
+    "native_decode_s": 43.7563,
+    "native_tps": 70.21,
+    "tokens_per_round": 4.599,
+    "accepted_drafts_per_round": 3.599,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "94d43034815dff589970849879ce78bf3b8cc006c6e2de2a5c46c361e6f14243",
+    "output_sha256": "873ccb74598b695995b7285d16d04ef3a8c6d4d7d0ca6ea31b193734804c026c",
+    "result_file_sha256": "25520f7914ac9adc0c0e7ed784abb712bcd9858bd68dda395afed292c59c1f2c"
+   },
+   "BQ3": {
+    "output_tokens": 3072,
+    "rounds": 725,
+    "native_decode_s": 47.6664,
+    "native_tps": 64.45,
+    "tokens_per_round": 4.237,
+    "accepted_drafts_per_round": 3.236,
+    "finish": "length",
+    "verification": "block_verification_sun2025_sparse_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "64625215a42c6689432a5f7dacdff5664fb3afb636880390304a7a7be621f668",
+    "output_sha256": "010b1748d43baaf06ee4111b5ce66735ff8f462b02906d575cae866bf2a02c98",
+    "result_file_sha256": "d1d12495f28d9428e6381bcc9efa19d731380787e838abaaca526cec8582beda"
+   }
+  },
+  {
+   "case": "english_inversions",
+   "set": "holdout8",
+   "G0": {
+    "output_tokens": 3072,
+    "rounds": 1036,
+    "native_decode_s": 67.7136,
+    "native_tps": 45.37,
+    "tokens_per_round": 2.965,
+    "accepted_drafts_per_round": 1.965,
+    "finish": "length",
+    "verification": "deterministic_draft_target_sample_equality_v1",
+    "proposal_calibration": null,
+    "trajectory_sha256": "41e3d10b0acdc433beaf9efffd7f80cba7ff2b04a9fa2f865f07826b01da8333",
+    "output_sha256": "a0f988328184d4f22c6e5ced46f676a8c7db915cf871151271ea9e69b1bc0df7",
+    "result_file_sha256": "b0f5c56e9ae80a0409d12251d7f7e8126342e42ef1806588a7e37e7077c80ad5"
+   },
+   "B7": {
+    "output_tokens": 3072,
+    "rounds": 913,
+    "native_decode_s": 59.7389,
+    "native_tps": 51.42,
+    "tokens_per_round": 3.365,
+    "accepted_drafts_per_round": 2.365,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ],
+     "temperatures": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    "trajectory_sha256": "57f3f546f45d3d24b8f1478ff1337e82d143053e90c68b912194ffc0b37fe637",
+    "output_sha256": "adfeaee3645f45e3637126ce7185a403d72b4e557eea75690dc643f392d74a70",
+    "result_file_sha256": "cce5077e042e4c5d48553374f58572ec088a07319861732ca72546ba818a10b5"
+   },
+   "TQ3": {
+    "output_tokens": 3072,
+    "rounds": 873,
+    "native_decode_s": 57.1932,
+    "native_tps": 53.71,
+    "tokens_per_round": 3.519,
+    "accepted_drafts_per_round": 2.519,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "828d04df84b37b2ad8192c2e30db944b7b1aa69286f00dbc53f0bf711db26c15",
+    "output_sha256": "150af11191f2cbc6addda16dcd991ae5e0d56343d93f9dc7aeda5b75b55535ce",
+    "result_file_sha256": "c1a0439420f9a23c33629b7441555a7803896091e72bad507b34cfc52234a843"
+   },
+   "BQ3": {
+    "output_tokens": 3072,
+    "rounds": 912,
+    "native_decode_s": 59.7774,
+    "native_tps": 51.39,
+    "tokens_per_round": 3.368,
+    "accepted_drafts_per_round": 2.368,
+    "finish": "length",
+    "verification": "block_verification_sun2025_sparse_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "fee854a681f9fad6f266e217d690de64538e701c312e4563f6d5e5bd05a18696",
+    "output_sha256": "60102d0096afb43ac8ae8ce26e01edc848c1f68ef31d844951ce2f2e85b183ff",
+    "result_file_sha256": "d40a328f9e1b4386a9d8137a29296313514d5452b3eadc48c0aec255765dad50"
+   }
+  },
+  {
+   "case": "english_two_phase_commit",
+   "set": "holdout8",
+   "G0": {
+    "output_tokens": 3072,
+    "rounds": 1318,
+    "native_decode_s": 86.1756,
+    "native_tps": 35.65,
+    "tokens_per_round": 2.331,
+    "accepted_drafts_per_round": 1.331,
+    "finish": "length",
+    "verification": "deterministic_draft_target_sample_equality_v1",
+    "proposal_calibration": null,
+    "trajectory_sha256": "fec37d98b4c92b3de865e2879c969a83682d77b6c74544f45e2941512b46d9fb",
+    "output_sha256": "ec0be0ca79be36f10a460f11434c40fb363a18a08375ed6a21d568f8b083dec1",
+    "result_file_sha256": "930b61ca19159622d0bd110585d2f17bea089f457704401c0f11bf949fd10b9e"
+   },
+   "B7": {
+    "output_tokens": 3072,
+    "rounds": 1091,
+    "native_decode_s": 71.5744,
+    "native_tps": 42.92,
+    "tokens_per_round": 2.816,
+    "accepted_drafts_per_round": 1.816,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ],
+     "temperatures": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    "trajectory_sha256": "0609ad542f915a504d667d7d1e73f297a558ab72c42efef9abedd9ed8d7783f3",
+    "output_sha256": "f65ad290a8cf75cc5a64da89a7a98e1e846bd4309454473d90e2cac6fedfa07b",
+    "result_file_sha256": "4d1c463966eb1d66d3dc2950a4ecf091b8df8fc7d369d0a0fdf0ba6d16b1df39"
+   },
+   "TQ3": {
+    "output_tokens": 3072,
+    "rounds": 1117,
+    "native_decode_s": 73.2454,
+    "native_tps": 41.94,
+    "tokens_per_round": 2.75,
+    "accepted_drafts_per_round": 1.75,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "29348cfd6a633ea7f2dd54c6d30e4e8c2ad28ab02987a46b0305ae3e9d6d48de",
+    "output_sha256": "85ffff27ef2ddb309b259933edab8b5c0045b6e1281449a4107c6f50423e2606",
+    "result_file_sha256": "0de18ff26263035bdd558cdf330dae8bcf104a9e5ea428af54e2bf469435cdbc"
+   },
+   "BQ3": {
+    "output_tokens": 3072,
+    "rounds": 1039,
+    "native_decode_s": 68.1755,
+    "native_tps": 45.06,
+    "tokens_per_round": 2.957,
+    "accepted_drafts_per_round": 1.957,
+    "finish": "length",
+    "verification": "block_verification_sun2025_sparse_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "bbc80224329c63f0e9fce0fc1d05daf37a67a7c4fabf3df11f7d3ac723ec588f",
+    "output_sha256": "3c96e86f03886d74338668bbfc19c674e52b1ccbbeaa73cc587a5051dc2dfa0f",
+    "result_file_sha256": "37eedefcb8735d502b5b30966493a2ed079d325bddac33bc6f9994361d9588d2"
+   }
+  },
+  {
+   "case": "english_pell",
+   "set": "holdout8",
+   "G0": {
+    "output_tokens": 3072,
+    "rounds": 832,
+    "native_decode_s": 54.4928,
+    "native_tps": 56.37,
+    "tokens_per_round": 3.692,
+    "accepted_drafts_per_round": 2.691,
+    "finish": "length",
+    "verification": "deterministic_draft_target_sample_equality_v1",
+    "proposal_calibration": null,
+    "trajectory_sha256": "50bb6413e1108f48b6d8bdd3b89e703ccc3b9c626ab1a681f1670828efcfc25c",
+    "output_sha256": "43b322c544d4ae5327ebad91a10390c33f6ebbb86bba4bec51ff73ce89efac99",
+    "result_file_sha256": "1763bb524f73c5e91b3f5a453a04910be05264f8d0a74f170db5d3e206c80201"
+   },
+   "B7": {
+    "output_tokens": 3072,
+    "rounds": 740,
+    "native_decode_s": 48.4463,
+    "native_tps": 63.41,
+    "tokens_per_round": 4.151,
+    "accepted_drafts_per_round": 3.151,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ],
+     "temperatures": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    "trajectory_sha256": "83192a74794b1fedc1edb43061f02253c88ecd4679e54363d538637edead67b5",
+    "output_sha256": "ff356bd23c097588c97ae32939dcd23d8f696a75372457248290cf703037b544",
+    "result_file_sha256": "a40a8ebc05756dec4ff554dba0677be18672e62a1d1620668e8acb4727522b10"
+   },
+   "TQ3": {
+    "output_tokens": 3072,
+    "rounds": 690,
+    "native_decode_s": 45.0982,
+    "native_tps": 68.12,
+    "tokens_per_round": 4.452,
+    "accepted_drafts_per_round": 3.452,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "56d2c0bd4fa8fb2911f8e9d4c623fe2a9a246c31d80e4e34ff4ffc482a4f85b9",
+    "output_sha256": "0eff55400a26336bad896a7dbd37d738800dcac630e39bdc8ae86c235afbc3ae",
+    "result_file_sha256": "28eba592ed025fccb5b9764c07c37907c619589d631bb4f6f74087bbda96ba86"
+   },
+   "BQ3": {
+    "output_tokens": 3072,
+    "rounds": 792,
+    "native_decode_s": 52.1368,
+    "native_tps": 58.92,
+    "tokens_per_round": 3.879,
+    "accepted_drafts_per_round": 2.879,
+    "finish": "length",
+    "verification": "block_verification_sun2025_sparse_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "4d411bb5cb9016bd5af25e31372293d07986a8683b9255ebca693790dce11bf9",
+    "output_sha256": "9450f7c7d69f3f053b1746618e1af94b5a1b414781ed3875cf1ca6c517a7434a",
+    "result_file_sha256": "1c9634f0ef0c3e506a68d94c966f6ff608361a5624ae3c14ced8050f9ceeb514"
+   }
+  },
+  {
+   "case": "english_triangle",
+   "set": "holdout8",
+   "G0": {
+    "output_tokens": 3072,
+    "rounds": 693,
+    "native_decode_s": 45.4504,
+    "native_tps": 67.59,
+    "tokens_per_round": 4.433,
+    "accepted_drafts_per_round": 3.433,
+    "finish": "length",
+    "verification": "deterministic_draft_target_sample_equality_v1",
+    "proposal_calibration": null,
+    "trajectory_sha256": "44803118198d1d77555f3c024dcc96d1c9b695cf1ca4794143725946291dcf6a",
+    "output_sha256": "ab08be10dff032deaad8885e316c26b11eb9a108267851d27022df5903950b16",
+    "result_file_sha256": "90f7ec88ba947d68aa72b20cced6cd9815099115781b7cd3c2491472df1d26c5"
+   },
+   "B7": {
+    "output_tokens": 3072,
+    "rounds": 599,
+    "native_decode_s": 39.275,
+    "native_tps": 78.22,
+    "tokens_per_round": 5.129,
+    "accepted_drafts_per_round": 4.129,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ],
+     "temperatures": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    "trajectory_sha256": "292b2966e3043fc98d517ddb7d5f44d8b00dcd549be59da0044c17e1a61711b9",
+    "output_sha256": "3a137032105627d3fdd500cce131b5004bbc4d7b09a6d2101968d6a6744b0b13",
+    "result_file_sha256": "e33f7b507b4060dadad3054c47bc5ee82c2e1fa1a44df018d2779c50469263a7"
+   },
+   "TQ3": {
+    "output_tokens": 3072,
+    "rounds": 623,
+    "native_decode_s": 40.8683,
+    "native_tps": 75.17,
+    "tokens_per_round": 4.931,
+    "accepted_drafts_per_round": 3.931,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "7edcefd74754ed775db0a7becdd42169597b608d46efbcfc70f88d2d3c0686ca",
+    "output_sha256": "25d56521be3d166430ffbe7932998054888a1b09637045178528a63b356334f3",
+    "result_file_sha256": "beaedfca7f4f92db23c711bae788cbfacb3f0025fdd97e16b69ca08bc8fdaae8"
+   },
+   "BQ3": {
+    "output_tokens": 3072,
+    "rounds": 577,
+    "native_decode_s": 37.7981,
+    "native_tps": 81.27,
+    "tokens_per_round": 5.324,
+    "accepted_drafts_per_round": 4.322,
+    "finish": "length",
+    "verification": "block_verification_sun2025_sparse_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "82dc7bcd4366a1cfa6aaae5824e0c79ce3febbf07c768827753924818d1e5758",
+    "output_sha256": "81e2c872b37f4a148ce6e26c7ba536fbe99860cb6e76e38536894c0da939f751",
+    "result_file_sha256": "d20e9bff3c82eb5e51f6d6e606c53435fbf9d069536f226a14600ec08bef6c78"
+   }
+  },
+  {
+   "case": "english_no_three_ones",
+   "set": "holdout8",
+   "G0": {
+    "output_tokens": 3072,
+    "rounds": 714,
+    "native_decode_s": 46.5321,
+    "native_tps": 66.02,
+    "tokens_per_round": 4.303,
+    "accepted_drafts_per_round": 3.303,
+    "finish": "length",
+    "verification": "deterministic_draft_target_sample_equality_v1",
+    "proposal_calibration": null,
+    "trajectory_sha256": "345e4858c9010b0b6531c5125db38eea3d43983b76d1e86fc2e8e057278df4ee",
+    "output_sha256": "2b6c995c4d3b47a32f8c058b186439b753607650d4c250f8915d71ba714caaa1",
+    "result_file_sha256": "ad2d6688fbf55450c985f639104035d95c16928b1768f3fb8f096cc94a652793"
+   },
+   "B7": {
+    "output_tokens": 3072,
+    "rounds": 646,
+    "native_decode_s": 42.2376,
+    "native_tps": 72.73,
+    "tokens_per_round": 4.755,
+    "accepted_drafts_per_round": 3.755,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ],
+     "temperatures": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    "trajectory_sha256": "572e8f0e7f37f9b38b58d0a73192fa89e352cda6956cc889fa490e6a98e6d146",
+    "output_sha256": "90b54a89e8d4405c808609deca25b7accfcc89a0195c5771b2743fc862cfaf08",
+    "result_file_sha256": "d3098887da9b82854e9e09ef0162bf657af2821ef6ce3ee2106064fb3d6f7b9f"
+   },
+   "TQ3": {
+    "output_tokens": 3072,
+    "rounds": 662,
+    "native_decode_s": 43.2455,
+    "native_tps": 71.04,
+    "tokens_per_round": 4.64,
+    "accepted_drafts_per_round": 3.639,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "d5e097cc1fed093cb5f31cd26e22d7adcd079f6ebde7d43322e974714102c6ee",
+    "output_sha256": "acdb225d74215253d8104c2b5d467363f2944f56a8e47c85176bcacedf1c36f8",
+    "result_file_sha256": "e68301890fc553138dbbca5d110ecaba79b08b3cb9381c05d07dbf3afce08f32"
+   },
+   "BQ3": {
+    "output_tokens": 3072,
+    "rounds": 689,
+    "native_decode_s": 45.0873,
+    "native_tps": 68.13,
+    "tokens_per_round": 4.459,
+    "accepted_drafts_per_round": 3.459,
+    "finish": "length",
+    "verification": "block_verification_sun2025_sparse_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "c633e24ad88b8999db0f7fd2d19858a3c0688eba00ae08b5554170d8d4ec6eb9",
+    "output_sha256": "f601001020eba14ed9db3c5054aba9475d83916d4057f58bf99bf05dbf7cb012",
+    "result_file_sha256": "fb3f839dec34e4149b853059a10e303e3f463460c609bc1c90b7834d8cfa1dc1"
+   }
+  },
+  {
+   "case": "english_dcl_singleton",
+   "set": "holdout8",
+   "G0": {
+    "output_tokens": 3072,
+    "rounds": 1344,
+    "native_decode_s": 87.9196,
+    "native_tps": 34.94,
+    "tokens_per_round": 2.286,
+    "accepted_drafts_per_round": 1.285,
+    "finish": "length",
+    "verification": "deterministic_draft_target_sample_equality_v1",
+    "proposal_calibration": null,
+    "trajectory_sha256": "9a846d41368146af64a7589efe0da46e0a6466144b1a4f713abe23a943f73eda",
+    "output_sha256": "0917ae97b78bdc73a3bdc84cc90f01b8aafad4bddbd09d2faeade7a0699c5d90",
+    "result_file_sha256": "812bf043e09a9cb067ebd8676e05cf60200d143928bfd79f955b6b72dbc6969f"
+   },
+   "B7": {
+    "output_tokens": 3072,
+    "rounds": 1162,
+    "native_decode_s": 76.278,
+    "native_tps": 40.27,
+    "tokens_per_round": 2.644,
+    "accepted_drafts_per_round": 1.644,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ],
+     "temperatures": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    "trajectory_sha256": "e46fcfa0651fd1a4c28663d8ce943c12538c913d294e978528fce05f3b4dca5c",
+    "output_sha256": "b8d26203e00b0c74d3b7de84263f4c43ad5498713657223f0b749cddc6e59de9",
+    "result_file_sha256": "65569e0aa2a6f73c704d1a10ac04ee9ad9d7711b7b32d32269d8b1dc976f9bc6"
+   },
+   "TQ3": {
+    "output_tokens": 3072,
+    "rounds": 1069,
+    "native_decode_s": 70.1043,
+    "native_tps": 43.82,
+    "tokens_per_round": 2.874,
+    "accepted_drafts_per_round": 1.873,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "8156eb96cdf730482dc7069bb218e2cfc57071743b0b2e7cd2e94c8cd583ff3f",
+    "output_sha256": "c65cee0f18589525dc418705a2a79ab6cfd81048122c4ebaf4c71712bb8c38bb",
+    "result_file_sha256": "6bf8c244622ec3f06bdb8088f1f6714f4ab40995aa9b26dc5e470ff130196faa"
+   },
+   "BQ3": {
+    "output_tokens": 3072,
+    "rounds": 1067,
+    "native_decode_s": 70.0424,
+    "native_tps": 43.86,
+    "tokens_per_round": 2.879,
+    "accepted_drafts_per_round": 1.878,
+    "finish": "length",
+    "verification": "block_verification_sun2025_sparse_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "dee69283814e1d007e8492315683b1aff50c16254198487faadd1ca9d472c0dd",
+    "output_sha256": "68ef69ff09ec4ccefcd0767649e44de9f50d5f51dac1827fdb669ce71c0e529f",
+    "result_file_sha256": "2e306571361485e2179bb6121f28c68d36979fe69194cb33478139d7d584f097"
+   }
+  },
+  {
+   "case": "english_ladder",
+   "set": "holdout8",
+   "G0": {
+    "output_tokens": 3072,
+    "rounds": 1002,
+    "native_decode_s": 65.8151,
+    "native_tps": 46.68,
+    "tokens_per_round": 3.066,
+    "accepted_drafts_per_round": 2.066,
+    "finish": "length",
+    "verification": "deterministic_draft_target_sample_equality_v1",
+    "proposal_calibration": null,
+    "trajectory_sha256": "954db6bdca03c620e990910dc39ec3bb1dc356e0cc3e32210598a653917b15cd",
+    "output_sha256": "05d7b92f54505331db6bcb74f54348a96de42cfa33bf142e8c5f5a212b19dfa7",
+    "result_file_sha256": "619640bf5e5ea09eeebae7ad26b6b99b2a59e849f6e97d583dccb4e7edab1f67"
+   },
+   "B7": {
+    "output_tokens": 3072,
+    "rounds": 924,
+    "native_decode_s": 60.7955,
+    "native_tps": 50.53,
+    "tokens_per_round": 3.325,
+    "accepted_drafts_per_round": 2.324,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ],
+     "temperatures": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    "trajectory_sha256": "ffab2ea345740d89626d12f55ae36dd4ee273a9feffedb3e4da183341c162b03",
+    "output_sha256": "2b79557851ee78211fc1366c263e56a37c82163ec7396d365598e414453cf12e",
+    "result_file_sha256": "55a2245eb4d150a3520a5522e76014bd1838278c9ce3c7435eb7129990cab963"
+   },
+   "TQ3": {
+    "output_tokens": 3072,
+    "rounds": 846,
+    "native_decode_s": 55.5431,
+    "native_tps": 55.31,
+    "tokens_per_round": 3.631,
+    "accepted_drafts_per_round": 2.631,
+    "finish": "length",
+    "verification": "sparse_p_over_q_positive_residual_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "066b2aee1fdc1da20dc141ac9c399916c8d66e9c5ab6cd7151a45110e1b3e6ea",
+    "output_sha256": "b39b094c70e8ddc47bb3478a1c1449c86d8da993691169debb1ab75649d5ee11",
+    "result_file_sha256": "028a2a1d25b4b89bbf0fd0a63462bcc63ae8596c19d3a2bdf4d67e16b8aecb90"
+   },
+   "BQ3": {
+    "output_tokens": 3072,
+    "rounds": 840,
+    "native_decode_s": 55.3229,
+    "native_tps": 55.53,
+    "tokens_per_round": 3.657,
+    "accepted_drafts_per_round": 2.657,
+    "finish": "length",
+    "verification": "block_verification_sun2025_sparse_v1",
+    "proposal_calibration": {
+     "pair_scales": [
+      1.0,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5
+     ],
+     "temperatures": [
+      0.875,
+      0.875,
+      0.875,
+      0.75,
+      0.75,
+      0.75,
+      0.75
+     ]
+    },
+    "trajectory_sha256": "55f95830db6ca591caa3b6eff00df77add67e2b5aa1d306cef85aa2bbca62250",
+    "output_sha256": "cd71a55922b63b6d4eb30f5cedd75f1139d65597668b0f61de700c7e0ba9c7cb",
+    "result_file_sha256": "8ca37dd236776465934b81140380f7b6d4512346f5f6e77d1d9ee5ffcf89fcea"
+   }
+  }
+ ]
+}

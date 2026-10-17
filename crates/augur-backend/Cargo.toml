@@ -1,0 +1,66 @@
+[package]
+name = "augur-backend"
+version = "0.0.1-alpha"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+autoexamples = false
+
+[features]
+qwen35-vision-affine = ["qwen35-prefill-cublas", "augur-cuda-sys/qwen35-vision-affine"]
+# Large QUASAR GEMM/GDN batches; Flash Attention remains tiled512.
+qwen35-augur-large-prefill = ["qwen35-prefill-cublas", "augur-cuda-sys/qwen35-augur-large-prefill"]
+default = []
+cuda = ["augur-cuda-sys/cuda", "dep:sha2"]
+qwen35-linear-step = ["cuda", "augur-cuda-sys/qwen35-linear-step"]
+qwen35-q8-packed-load = ["cuda", "augur-cuda-sys/qwen35-q8-packed-load"]
+qwen35-target-split-rope = ["cuda", "augur-cuda-sys/qwen35-target-split-rope"]
+qwen35-native-f16-scale = ["cuda", "augur-cuda-sys/qwen35-native-f16-scale"]
+qwen35-nvfp4-fused-lb10 = ["cuda", "augur-cuda-sys/qwen35-nvfp4-fused-lb10"]
+qwen35-gdn-warp-row = ["cuda", "augur-cuda-sys/qwen35-gdn-warp-row"]
+qwen35-fused-head-norm-rope = ["cuda", "augur-cuda-sys/qwen35-fused-head-norm-rope"]
+qwen35-warp-full-attention = ["cuda", "augur-cuda-sys/qwen35-warp-full-attention"]
+qwen35-full-attention-parallel-exp = [
+    "qwen35-warp-full-attention",
+    "augur-cuda-sys/qwen35-full-attention-parallel-exp",
+]
+qwen35-grouped-gqa-online-softmax = [
+    "cuda",
+    "augur-cuda-sys/qwen35-grouped-gqa-online-softmax",
+]
+qwen35-kv8-full-attention = [
+    "qwen35-grouped-gqa-online-softmax",
+    "augur-cuda-sys/qwen35-kv8-full-attention",
+]
+qwen35-kv8-batched-attention = [
+    "qwen35-kv8-full-attention",
+    "augur-cuda-sys/qwen35-kv8-batched-attention",
+]
+qwen35-kv8-chunk-prefill = [
+    "qwen35-prefill-cublas",
+    "qwen35-kv8-full-attention",
+    "augur-cuda-sys/qwen35-kv8-chunk-prefill",
+]
+qwen35-split-rmsnorm = ["cuda", "augur-cuda-sys/qwen35-split-rmsnorm"]
+qwen35-fused-ffn-swiglu = ["cuda", "augur-cuda-sys/qwen35-fused-ffn-swiglu"]
+qwen35-device-token-handoff = ["cuda", "augur-cuda-sys/qwen35-device-token-handoff"]
+qwen35-prefill-cublas = ["qwen35-linear-step", "augur-cuda-sys/qwen35-prefill-cublas"]
+m306-k17-bf16-warp-row = ["cuda", "augur-cuda-sys/m306-k17-bf16-warp-row"]
+[dependencies]
+augur-core = { path = "../augur-core" }
+augur-kernel-api = { path = "../augur-kernel-api" }
+augur-cuda-sys = { path = "../augur-cuda-sys", optional = true }
+sha2 = { version = "0.10.9", optional = true }
+
+[dev-dependencies]
+augur-formats = { path = "../augur-formats" }
+augur-repack = { path = "../augur-repack" }
+augur-kernels = { path = "../augur-kernels" }
+serde_json = "1.0.150"
+serde = { version = "1.0.228", features = ["derive"] }
+sha2 = "0.10.9"
+
+
+[[example]]
+name = "augur_selector_replay"
+path = "examples/augur_selector_replay.rs"
+required-features = ["qwen35-prefill-cublas", "qwen35-device-token-handoff"]

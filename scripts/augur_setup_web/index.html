@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title data-i18n-title="title">Augur 本地服务配置</title><link rel="stylesheet" href="/style.css"><script defer src="/i18n.js"></script><script defer src="/app.js"></script></head>
+<body>
+<div class="shell">
+<aside class="rail">
+  <div class="mark"><svg class="lituus" viewBox="0 0 32 32" aria-hidden="true"><path d="M25 30V12A9 9 0 0 0 7 12A6 6 0 0 0 19 12A3 3 0 0 0 13 12"/></svg><div><b>Augur</b><span data-i18n="tagline">本地推理引擎</span></div></div>
+  <section class="status" aria-live="polite">
+    <span id="badge" class="badge" data-i18n="connecting">连接中</span>
+    <strong id="phase" data-i18n="reading">正在读取配置</strong>
+    <p id="message"></p>
+    <div id="progress" hidden><div class="progress-line"><span id="spinner" class="spinner" aria-hidden="true"></span><span id="progress_stage"></span><strong id="elapsed"></strong></div><p id="progress_detail" class="hint"></p></div>
+    <pre id="error" role="alert"></pre>
+    <div class="service-links"><a id="chat" hidden target="_blank" rel="noreferrer" data-i18n="open_chat">打开聊天</a><a id="monitor" hidden target="_blank" rel="noreferrer" data-i18n="open_monitor">打开实时监控</a></div>
+    <p id="monitor_error" class="hint"></p>
+  </section>
+  <figure class="strip-note" aria-hidden="true"><div class="mini-strip"><i class="anchor"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="off"></i><i></i><i></i><i></i></div><figcaption data-i18n="strip">每轮由主模型一次验证 8 个位置。草稿按真实概率提案，英文思考平均每轮通过约 3.6 个 token。</figcaption></figure>
+  <p class="rail-foot" data-i18n="rail_foot">QUASAR 27B NVFP4 主模型，DFlash 草稿，固定 B8。服务只监听本机回环地址。</p>
+</aside>
+<main>
+<div class="topline"><label for="language" class="lang-label" data-i18n="language">界面语言</label><select id="language" class="lang-select"><option value="zh-CN">简体中文</option><option value="en">English</option></select></div>
+<h1 data-i18n="h1">配置一次，留在本机。</h1>
+<p class="intro" data-i18n="intro">选好模型目录和上下文容量，保存后引擎会在这台机器上加载，并给出聊天和监控入口。</p>
+<form id="configuration">
+<section><h2><span>1</span><b data-i18n="s1">模型与草稿</b></h2>
+<label for="model_dir" data-i18n="model_dir">QUASAR 主模型目录</label><div class="path"><input id="model_dir" data-i18n-ph="model_dir_ph" placeholder="原始 NVFP4 主模型目录" required><button type="button" data-browse="model_dir" data-i18n="browse">浏览</button></div>
+<label for="draft_source_dir" data-i18n="draft_source_dir">DFlash 原始 BF16 目录</label><div class="path"><input id="draft_source_dir" data-i18n-ph="draft_source_ph" placeholder="包含 config.json 与 model.safetensors"><button type="button" data-browse="draft_source_dir" data-i18n="browse">浏览</button></div>
+<label for="quant_output_dir" data-i18n="quant_output_dir">量化输出目录</label><div class="path"><input id="quant_output_dir"><button type="button" data-browse="quant_output_dir" data-i18n="browse">浏览</button></div>
+<p class="hint" data-i18n="quant_hint">默认写入 release 的 user-data/models。Rust 原生 CPU 量化生成 Q8_0 权重，并内置 FP32 gate0.45；原始权重保留，已有目录不会被覆盖。</p>
+<button type="button" id="quantize" class="secondary" data-i18n="quantize">量化并选用</button>
+<label for="draft_quantized_dir" data-i18n="draft_quantized_dir">正在选用的量化草稿</label><div class="path"><input id="draft_quantized_dir" data-i18n-ph="draft_quantized_ph" placeholder="量化成功后自动填写，也可以选择已有结果"><button type="button" data-browse="draft_quantized_dir" data-i18n="browse">浏览</button></div></section>
+<section><h2><span>2</span><b data-i18n="s2">上下文与服务</b></h2><div class="grid">
+<div><label for="context_tokens" data-i18n="context">KV 上下文容量</label><select id="context_tokens"><option value="8192">8K (8,192 tokens)</option><option value="32768">32K (32,768 tokens)</option><option value="65536">64K (65,536 tokens)</option><option value="131072">128K (131,072 tokens)</option><option value="196608">192K (196,608 tokens)</option><option value="262144">256K (262,144 tokens)</option></select></div>
+<div><label for="default_output_tokens" data-i18n="output">默认单次输出上限</label><input id="default_output_tokens" type="number" min="1" step="1" required aria-describedby="output_hint"><small id="output_hint" class="muted"></small></div>
+<div><label for="port" data-i18n="port">模型 API 端口</label><input id="port" type="number" min="1024" max="65535" step="1" required></div>
+<div><label for="vision_residency" data-i18n="vision">Vision 显存策略</label><select id="vision_residency"><option value="on_demand" data-i18n="vision_on_demand">按需加载（默认）</option><option value="auto" data-i18n="vision_auto">优先常驻，内存紧张时回收</option></select></div></div>
+<p class="hint" data-i18n="context_hint">KV 容量由输入、历史、思考和答案共用，不是额外的输出额度。修改容量需要重启，已有对话不会被自动截断。请求自带输出额度时以请求为准，但不超过容量的 95%。</p></section>
+<section><h2><span>3</span><b data-i18n="s3">本地持久化缓存</b></h2><label class="toggle"><input id="cache_enabled" type="checkbox"><span data-i18n="cache_toggle">保存可恢复的输入前缀，重启后复用</span></label><label for="cache_dir" data-i18n="cache_dir">缓存目录</label><div class="path"><input id="cache_dir"><button type="button" data-browse="cache_dir" data-i18n="browse">浏览</button></div><p class="hint" data-i18n="cache_hint">缓存含对话 token 与模型状态，请放在私有本机磁盘。256K 建议预留至少 24 GiB；不兼容的旧缓存不会被自动删除。</p></section>
+<section><h2><span>4</span><b data-i18n="s4">接入其他 Agent</b></h2>
+<dl class="connection"><dt>Base URL</dt><dd><code id="conn_base_url"></code><button type="button" class="secondary" data-copy="conn_base_url" data-i18n="copy">复制</button></dd>
+<dt data-i18n="model_name">模型名</dt><dd><code id="conn_model"></code><button type="button" class="secondary" data-copy="conn_model" data-i18n="copy">复制</button></dd>
+<dt>API Key</dt><dd><code id="conn_key">••••••••</code><button type="button" class="secondary" id="reveal_key" aria-pressed="false" data-i18n="show">显示</button><button type="button" class="secondary" data-copy="conn_key" data-i18n="copy">复制</button></dd></dl>
+<label class="toggle"><input id="export_env" type="checkbox"><span data-i18n-html="export_env">写入当前用户环境变量 <code>AUGUR_API_KEY</code>、<code>AUGUR_BASE_URL</code>、<code>AUGUR_MODEL</code></span></label>
+<p class="hint" id="env_status"></p>
+<p class="hint" id="key_hint" data-i18n-html="key_hint">聊天页会自动登录，无需输入密钥。</p>
+<button type="button" id="rekey" class="secondary" data-i18n="rekey">更换 API Key</button></section>
+<footer><div class="actions"><button id="validate" type="button" class="secondary" data-i18n="validate">检查配置</button><button id="restart" type="submit" class="primary" data-i18n="restart">保存并重启服务</button><button id="stop" type="button" class="danger" data-i18n="stop">关闭服务</button><button id="quit" type="button" class="secondary" data-i18n="quit">退出 Augur</button></div><p data-i18n="footer">关闭服务会中断当前生成并释放显存，配置页继续保留。退出 Augur 会先关闭服务，再结束后台启动器。关闭浏览器标签不会停止引擎；再次双击“启动服务.exe”会回到这个页面。</p><small id="config_location"></small></footer>
+</form>
+</main>
+</div>
+<dialog id="welcome" aria-labelledby="welcome_title"><form method="dialog">
+<div class="mark"><svg class="lituus" viewBox="0 0 32 32" aria-hidden="true"><path d="M25 30V12A9 9 0 0 0 7 12A6 6 0 0 0 19 12A3 3 0 0 0 13 12"/></svg><div><b>Augur</b></div></div>
+<h2 id="welcome_title" data-i18n="welcome_title">选择界面语言</h2>
+<div class="choices" role="radiogroup" aria-labelledby="welcome_title"><label><input type="radio" name="welcome_lang" value="zh-CN" checked><span>简体中文</span></label><label><input type="radio" name="welcome_lang" value="en"><span>English</span></label></div>
+<p class="hint" data-i18n="welcome_body">之后可以随时在页面右上角切换。聊天页和监控页会跟随这个选择。</p>
+<button type="submit" class="primary" data-i18n="welcome_ok">继续</button>
+</form></dialog>
+</body></html>

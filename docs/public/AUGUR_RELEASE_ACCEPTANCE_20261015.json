@@ -1,0 +1,62 @@
+{
+  "schema": "augur-release-acceptance-v1",
+  "recorded_revision": "2026.10.15-v14",
+  "date": "2026-10-15",
+  "scope": "Historical acceptance on the development Windows SM70 host, retained for the subsequent repository/packaging preparation; not a new GPU run or clean-machine qualification.",
+  "source_identity_sha256": "6a621b9a9a5f45e7edf9e1478d2f608c400f20c2609db3c1bd1416aef97c651b",
+  "build_receipt_sha256": "fce62b671faa0c23670babc4cc1ceaf1db303da207f3f4e3c30fea2d0b013d62",
+  "native_binaries": {
+    "quasar_session_http": {
+      "sha256": "d1d51bed751a9cb86ee7ab7b9f2db1ee673daa038dfc389a875e905db22c2395"
+    },
+    "quasar_session_jsonl": {
+      "sha256": "688d481506f6799efb181ef26112bd88bb36311b8f6c21a1ab5c1201d8949cb2"
+    },
+    "quasar-quantize": {
+      "sha256": "f6e4b48eeca0b79a59826b78eadf60e29297f8534fe3dd324b7eece68c567ddf"
+    }
+  },
+  "python_regression": {
+    "run": 139,
+    "passed": 137,
+    "skipped": 2,
+    "skip_reason": "optional test tokenizer path absent"
+  },
+  "tool_history_gpu": {
+    "status": "PASS",
+    "external_tools_executed": false,
+    "synthetic_prompts": true,
+    "cases": [
+      {
+        "case": "renamed_tool_history",
+        "http_status": 200,
+        "wall_s": 0.5985405002720654,
+        "finish": "stop",
+        "receipt_sha256": "8f2cddc8e4212e679396a5bd3bf278f0b46134f789a4ef19f72c900a22dbd981"
+      },
+      {
+        "case": "new_call_uses_current_declaration",
+        "http_status": 200,
+        "wall_s": 0.836215399671346,
+        "finish": "tool_calls",
+        "receipt_sha256": "b28f14f85554324e94af1d013de648187c4a434fb4a32116fe0657f9b606d0c0"
+      },
+      {
+        "case": "removed_tool_history",
+        "http_status": 200,
+        "wall_s": 0.4407953997142613,
+        "finish": "stop",
+        "receipt_sha256": "9950ac1653ede2b6d2ceb4dd5239d119c1cc79de6ecaf530b71a58889e59174b"
+      }
+    ]
+  },
+  "startup": {
+    "seconds": 16.444109899923205,
+    "definition": "module entry to usable API",
+    "cold_machine": false
+  },
+  "native_binary_changed_in_v14": false,
+  "published": false,
+  "clean_machine_verified": false,
+  "private_prompts_or_credentials_included": false
+}

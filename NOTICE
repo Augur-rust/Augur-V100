@@ -1,0 +1,60 @@
+Augur
+Copyright 2026 Augur contributors
+
+This software is available under either the Apache License, Version 2.0, or
+the MIT License, at your option. See LICENSE-APACHE and LICENSE-MIT.
+
+Third-party Rust crates, native toolchains, NVIDIA CUDA components, model
+artifacts, tokenizers, calibration inputs, and benchmark data retain their own
+licenses and redistribution terms. They are not relicensed by this NOTICE.
+
+The default QUASAR-QAT/Qwen3.8-27B-QUASAR-NVFP4 target and DFlash2 draft
+weights are not included in this source or Windows binary distribution.
+Historical DeepSeek-V4-Flash-0731 model artifacts also remain separate from this
+source tree. A source release or binary release must include its generated
+third-party inventory, artifact provenance, and applicable upstream notices.
+
+Windows binary bundles may redistribute NVIDIA CUDA and Microsoft Visual C++
+runtime files under their respective vendor terms. Those files are not covered
+by the Augur source license; see docs/public/RUNTIME_DEPENDENCIES.md.
+
+The Qwen35 opt-in coalesced Q8-to-F16 decoder in
+crates/augur-cuda-sys/native/augur_qwen35_prefill_cublas_sm70.cu is adapted from
+ggml/src/ggml-cuda/convert.cu (dequantize_block_q8_0_f16), llama.cpp.
+The adapted portion retains the following MIT license:
+
+Copyright (c) 2023-2026 The ggml authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+The opt-in Qwen35 QPN layout and small-batch projection adapters in
+crates/augur-cuda-sys/native/augur_qwen35_nvfp4_qpn_*.cuh and the corresponding
+CPU geometry in crates/augur-model-qwen35/src/nvfp4_qpn.rs are derived from
+the NInfer V100 Duo layout and Volta QPN implementation, licensed under the
+Apache License, Version 2.0. Their upstream attribution is preserved in
+crates/augur-cuda-sys/native/licenses/NINFER-NOTICE.txt and the license in
+crates/augur-cuda-sys/native/licenses/NINFER-APACHE-2.0.txt. These portions are
+not offered under the project's alternative MIT license. The llama/ggml
+Volta MMA primitive retains the MIT notice reproduced above.
+
+The long-context benchmark prompts in scripts/augur_bench_longctx.py are adapted
+from NInfer bench/v100/ctx_prompt.py, itself adapted from huangserva/ninfer-v100-tpx
+tools/bench/v100, both under the Apache License, Version 2.0. The code filler and
+task are reproduced unchanged; the Chinese document filler and task are translated
+to English. This portion is offered under the Apache License, Version 2.0 only.

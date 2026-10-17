@@ -1,0 +1,725 @@
+{
+  "tensors": [
+    {
+      "name": "selector_hidden.weight",
+      "shape": [
+        5120,
+        256
+      ],
+      "type": "Q8_0",
+      "bytes": 1392640
+    },
+    {
+      "name": "selector_predecessor.weight",
+      "shape": [
+        256,
+        248320
+      ],
+      "type": "Q8_0",
+      "bytes": 67543040
+    },
+    {
+      "name": "selector_successor.weight",
+      "shape": [
+        256,
+        248320
+      ],
+      "type": "Q8_0",
+      "bytes": 67543040
+    },
+    {
+      "name": "fc.weight",
+      "shape": [
+        25600,
+        5120
+      ],
+      "type": "Q8_0",
+      "bytes": 139264000
+    },
+    {
+      "name": "enc.output_norm.weight",
+      "shape": [
+        5120
+      ],
+      "type": "F32",
+      "bytes": 20480
+    },
+    {
+      "name": "blk.0.attn_conv_base",
+      "shape": [
+        5120,
+        2,
+        2
+      ],
+      "type": "F32",
+      "bytes": 81920
+    },
+    {
+      "name": "blk.0.attn_conv_proj.weight",
+      "shape": [
+        5120,
+        1280
+      ],
+      "type": "Q8_0",
+      "bytes": 6963200
+    },
+    {
+      "name": "blk.0.attn_norm.weight",
+      "shape": [
+        5120
+      ],
+      "type": "F32",
+      "bytes": 20480
+    },
+    {
+      "name": "blk.0.ffn_down.weight",
+      "shape": [
+        17408,
+        5120
+      ],
+      "type": "Q8_0",
+      "bytes": 94699520
+    },
+    {
+      "name": "blk.0.ffn_gate.weight",
+      "shape": [
+        5120,
+        17408
+      ],
+      "type": "Q8_0",
+      "bytes": 94699520
+    },
+    {
+      "name": "blk.0.ffn_up.weight",
+      "shape": [
+        5120,
+        17408
+      ],
+      "type": "Q8_0",
+      "bytes": 94699520
+    },
+    {
+      "name": "blk.0.ffn_conv_base",
+      "shape": [
+        5120,
+        2,
+        2
+      ],
+      "type": "F32",
+      "bytes": 81920
+    },
+    {
+      "name": "blk.0.ffn_conv_proj.weight",
+      "shape": [
+        5120,
+        1280
+      ],
+      "type": "Q8_0",
+      "bytes": 6963200
+    },
+    {
+      "name": "blk.0.ffn_norm.weight",
+      "shape": [
+        5120
+      ],
+      "type": "F32",
+      "bytes": 20480
+    },
+    {
+      "name": "blk.0.attn_k_norm.weight",
+      "shape": [
+        128
+      ],
+      "type": "F32",
+      "bytes": 512
+    },
+    {
+      "name": "blk.0.attn_k.weight",
+      "shape": [
+        5120,
+        1024
+      ],
+      "type": "Q8_0",
+      "bytes": 5570560
+    },
+    {
+      "name": "blk.0.attn_output.weight",
+      "shape": [
+        4096,
+        5120
+      ],
+      "type": "Q8_0",
+      "bytes": 22282240
+    },
+    {
+      "name": "blk.0.attn_q_norm.weight",
+      "shape": [
+        128
+      ],
+      "type": "F32",
+      "bytes": 512
+    },
+    {
+      "name": "blk.0.attn_q.weight",
+      "shape": [
+        5120,
+        4096
+      ],
+      "type": "Q8_0",
+      "bytes": 22282240
+    },
+    {
+      "name": "blk.0.attn_v.weight",
+      "shape": [
+        5120,
+        1024
+      ],
+      "type": "Q8_0",
+      "bytes": 5570560
+    },
+    {
+      "name": "blk.1.attn_conv_base",
+      "shape": [
+        5120,
+        2,
+        2
+      ],
+      "type": "F32",
+      "bytes": 81920
+    },
+    {
+      "name": "blk.1.attn_conv_proj.weight",
+      "shape": [
+        5120,
+        1280
+      ],
+      "type": "Q8_0",
+      "bytes": 6963200
+    },
+    {
+      "name": "blk.1.attn_norm.weight",
+      "shape": [
+        5120
+      ],
+      "type": "F32",
+      "bytes": 20480
+    },
+    {
+      "name": "blk.1.ffn_down.weight",
+      "shape": [
+        17408,
+        5120
+      ],
+      "type": "Q8_0",
+      "bytes": 94699520
+    },
+    {
+      "name": "blk.1.ffn_gate.weight",
+      "shape": [
+        5120,
+        17408
+      ],
+      "type": "Q8_0",
+      "bytes": 94699520
+    },
+    {
+      "name": "blk.1.ffn_up.weight",
+      "shape": [
+        5120,
+        17408
+      ],
+      "type": "Q8_0",
+      "bytes": 94699520
+    },
+    {
+      "name": "blk.1.ffn_conv_base",
+      "shape": [
+        5120,
+        2,
+        2
+      ],
+      "type": "F32",
+      "bytes": 81920
+    },
+    {
+      "name": "blk.1.ffn_conv_proj.weight",
+      "shape": [
+        5120,
+        1280
+      ],
+      "type": "Q8_0",
+      "bytes": 6963200
+    },
+    {
+      "name": "blk.1.ffn_norm.weight",
+      "shape": [
+        5120
+      ],
+      "type": "F32",
+      "bytes": 20480
+    },
+    {
+      "name": "blk.1.attn_k_norm.weight",
+      "shape": [
+        128
+      ],
+      "type": "F32",
+      "bytes": 512
+    },
+    {
+      "name": "blk.1.attn_k.weight",
+      "shape": [
+        5120,
+        1024
+      ],
+      "type": "Q8_0",
+      "bytes": 5570560
+    },
+    {
+      "name": "blk.1.attn_output.weight",
+      "shape": [
+        4096,
+        5120
+      ],
+      "type": "Q8_0",
+      "bytes": 22282240
+    },
+    {
+      "name": "blk.1.attn_q_norm.weight",
+      "shape": [
+        128
+      ],
+      "type": "F32",
+      "bytes": 512
+    },
+    {
+      "name": "blk.1.attn_q.weight",
+      "shape": [
+        5120,
+        4096
+      ],
+      "type": "Q8_0",
+      "bytes": 22282240
+    },
+    {
+      "name": "blk.1.attn_v.weight",
+      "shape": [
+        5120,
+        1024
+      ],
+      "type": "Q8_0",
+      "bytes": 5570560
+    },
+    {
+      "name": "blk.2.attn_conv_base",
+      "shape": [
+        5120,
+        2,
+        2
+      ],
+      "type": "F32",
+      "bytes": 81920
+    },
+    {
+      "name": "blk.2.attn_conv_proj.weight",
+      "shape": [
+        5120,
+        1280
+      ],
+      "type": "Q8_0",
+      "bytes": 6963200
+    },
+    {
+      "name": "blk.2.attn_norm.weight",
+      "shape": [
+        5120
+      ],
+      "type": "F32",
+      "bytes": 20480
+    },
+    {
+      "name": "blk.2.ffn_down.weight",
+      "shape": [
+        17408,
+        5120
+      ],
+      "type": "Q8_0",
+      "bytes": 94699520
+    },
+    {
+      "name": "blk.2.ffn_gate.weight",
+      "shape": [
+        5120,
+        17408
+      ],
+      "type": "Q8_0",
+      "bytes": 94699520
+    },
+    {
+      "name": "blk.2.ffn_up.weight",
+      "shape": [
+        5120,
+        17408
+      ],
+      "type": "Q8_0",
+      "bytes": 94699520
+    },
+    {
+      "name": "blk.2.ffn_conv_base",
+      "shape": [
+        5120,
+        2,
+        2
+      ],
+      "type": "F32",
+      "bytes": 81920
+    },
+    {
+      "name": "blk.2.ffn_conv_proj.weight",
+      "shape": [
+        5120,
+        1280
+      ],
+      "type": "Q8_0",
+      "bytes": 6963200
+    },
+    {
+      "name": "blk.2.ffn_norm.weight",
+      "shape": [
+        5120
+      ],
+      "type": "F32",
+      "bytes": 20480
+    },
+    {
+      "name": "blk.2.attn_k_norm.weight",
+      "shape": [
+        128
+      ],
+      "type": "F32",
+      "bytes": 512
+    },
+    {
+      "name": "blk.2.attn_k.weight",
+      "shape": [
+        5120,
+        1024
+      ],
+      "type": "Q8_0",
+      "bytes": 5570560
+    },
+    {
+      "name": "blk.2.attn_output.weight",
+      "shape": [
+        4096,
+        5120
+      ],
+      "type": "Q8_0",
+      "bytes": 22282240
+    },
+    {
+      "name": "blk.2.attn_q_norm.weight",
+      "shape": [
+        128
+      ],
+      "type": "F32",
+      "bytes": 512
+    },
+    {
+      "name": "blk.2.attn_q.weight",
+      "shape": [
+        5120,
+        4096
+      ],
+      "type": "Q8_0",
+      "bytes": 22282240
+    },
+    {
+      "name": "blk.2.attn_v.weight",
+      "shape": [
+        5120,
+        1024
+      ],
+      "type": "Q8_0",
+      "bytes": 5570560
+    },
+    {
+      "name": "blk.3.attn_conv_base",
+      "shape": [
+        5120,
+        2,
+        2
+      ],
+      "type": "F32",
+      "bytes": 81920
+    },
+    {
+      "name": "blk.3.attn_conv_proj.weight",
+      "shape": [
+        5120,
+        1280
+      ],
+      "type": "Q8_0",
+      "bytes": 6963200
+    },
+    {
+      "name": "blk.3.attn_norm.weight",
+      "shape": [
+        5120
+      ],
+      "type": "F32",
+      "bytes": 20480
+    },
+    {
+      "name": "blk.3.ffn_down.weight",
+      "shape": [
+        17408,
+        5120
+      ],
+      "type": "Q8_0",
+      "bytes": 94699520
+    },
+    {
+      "name": "blk.3.ffn_gate.weight",
+      "shape": [
+        5120,
+        17408
+      ],
+      "type": "Q8_0",
+      "bytes": 94699520
+    },
+    {
+      "name": "blk.3.ffn_up.weight",
+      "shape": [
+        5120,
+        17408
+      ],
+      "type": "Q8_0",
+      "bytes": 94699520
+    },
+    {
+      "name": "blk.3.ffn_conv_base",
+      "shape": [
+        5120,
+        2,
+        2
+      ],
+      "type": "F32",
+      "bytes": 81920
+    },
+    {
+      "name": "blk.3.ffn_conv_proj.weight",
+      "shape": [
+        5120,
+        1280
+      ],
+      "type": "Q8_0",
+      "bytes": 6963200
+    },
+    {
+      "name": "blk.3.ffn_norm.weight",
+      "shape": [
+        5120
+      ],
+      "type": "F32",
+      "bytes": 20480
+    },
+    {
+      "name": "blk.3.attn_k_norm.weight",
+      "shape": [
+        128
+      ],
+      "type": "F32",
+      "bytes": 512
+    },
+    {
+      "name": "blk.3.attn_k.weight",
+      "shape": [
+        5120,
+        1024
+      ],
+      "type": "Q8_0",
+      "bytes": 5570560
+    },
+    {
+      "name": "blk.3.attn_output.weight",
+      "shape": [
+        4096,
+        5120
+      ],
+      "type": "Q8_0",
+      "bytes": 22282240
+    },
+    {
+      "name": "blk.3.attn_q_norm.weight",
+      "shape": [
+        128
+      ],
+      "type": "F32",
+      "bytes": 512
+    },
+    {
+      "name": "blk.3.attn_q.weight",
+      "shape": [
+        5120,
+        4096
+      ],
+      "type": "Q8_0",
+      "bytes": 22282240
+    },
+    {
+      "name": "blk.3.attn_v.weight",
+      "shape": [
+        5120,
+        1024
+      ],
+      "type": "Q8_0",
+      "bytes": 5570560
+    },
+    {
+      "name": "blk.4.attn_conv_base",
+      "shape": [
+        5120,
+        2,
+        2
+      ],
+      "type": "F32",
+      "bytes": 81920
+    },
+    {
+      "name": "blk.4.attn_conv_proj.weight",
+      "shape": [
+        5120,
+        1280
+      ],
+      "type": "Q8_0",
+      "bytes": 6963200
+    },
+    {
+      "name": "blk.4.attn_norm.weight",
+      "shape": [
+        5120
+      ],
+      "type": "F32",
+      "bytes": 20480
+    },
+    {
+      "name": "blk.4.ffn_down.weight",
+      "shape": [
+        17408,
+        5120
+      ],
+      "type": "Q8_0",
+      "bytes": 94699520
+    },
+    {
+      "name": "blk.4.ffn_gate.weight",
+      "shape": [
+        5120,
+        17408
+      ],
+      "type": "Q8_0",
+      "bytes": 94699520
+    },
+    {
+      "name": "blk.4.ffn_up.weight",
+      "shape": [
+        5120,
+        17408
+      ],
+      "type": "Q8_0",
+      "bytes": 94699520
+    },
+    {
+      "name": "blk.4.ffn_conv_base",
+      "shape": [
+        5120,
+        2,
+        2
+      ],
+      "type": "F32",
+      "bytes": 81920
+    },
+    {
+      "name": "blk.4.ffn_conv_proj.weight",
+      "shape": [
+        5120,
+        1280
+      ],
+      "type": "Q8_0",
+      "bytes": 6963200
+    },
+    {
+      "name": "blk.4.ffn_norm.weight",
+      "shape": [
+        5120
+      ],
+      "type": "F32",
+      "bytes": 20480
+    },
+    {
+      "name": "blk.4.attn_k_norm.weight",
+      "shape": [
+        128
+      ],
+      "type": "F32",
+      "bytes": 512
+    },
+    {
+      "name": "blk.4.attn_k.weight",
+      "shape": [
+        5120,
+        1024
+      ],
+      "type": "Q8_0",
+      "bytes": 5570560
+    },
+    {
+      "name": "blk.4.attn_output.weight",
+      "shape": [
+        4096,
+        5120
+      ],
+      "type": "Q8_0",
+      "bytes": 22282240
+    },
+    {
+      "name": "blk.4.attn_q_norm.weight",
+      "shape": [
+        128
+      ],
+      "type": "F32",
+      "bytes": 512
+    },
+    {
+      "name": "blk.4.attn_q.weight",
+      "shape": [
+        5120,
+        4096
+      ],
+      "type": "Q8_0",
+      "bytes": 22282240
+    },
+    {
+      "name": "blk.4.attn_v.weight",
+      "shape": [
+        5120,
+        1024
+      ],
+      "type": "Q8_0",
+      "bytes": 5570560
+    },
+    {
+      "name": "output_norm.weight",
+      "shape": [
+        5120
+      ],
+      "type": "F32",
+      "bytes": 20480
+    }
+  ],
+  "type_counts": {
+    "Q8_0": 49,
+    "F32": 32
+  }
+}

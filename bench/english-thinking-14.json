@@ -1,0 +1,160 @@
+{
+ "schema": "augur-bench-suite-v1",
+ "name": "english-thinking-14",
+ "description": "Fourteen long English reasoning prompts with hidden thinking. Each request decodes a fixed-length segment; the suite measures decode speed and draft acceptance, not answer quality.",
+ "request": {
+  "enable_thinking": true,
+  "reasoning_effort": "xhigh",
+  "model": "quasar-27b",
+  "stream": false,
+  "temperature": 1.0,
+  "top_p": 0.95,
+  "top_k": 20,
+  "min_p": 0,
+  "presence_penalty": 0,
+  "frequency_penalty": 0,
+  "seed": 0
+ },
+ "cases": [
+  {
+   "name": "english_concurrency",
+   "max_completion_tokens": 3072,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Reason carefully in English about a writer-preference readers-writer lock with cancellation. Specify a concrete algorithm using one mutex and condition variables, explain exactly when waiting_writers is incremented and decremented, and handle cancellation both before and after a writer becomes the owner. Analyze spurious wakeups and show why there can never be a writer concurrent with a reader or another writer. Give an explicit adversarial interleaving that breaks a naive cancellation cleanup, then repair it. Distinguish safety, starvation freedom, and the scheduling assumptions required for progress. Finish with clear pseudocode and invariants; do not assume a signal reserves the lock for its recipient."
+    }
+   ]
+  },
+  {
+   "name": "english_walk_holdout",
+   "max_completion_tokens": 4096,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Solve this finite-state counting problem carefully in English. Count length-36 strings over {A,B,C,D} with exactly 10 A symbols, no adjacent equal symbols, the number of occurrences of AB divisible by 3, and the number of occurrences of CD odd. Give a self-contained Python function count_strings(n=36, a_count=10) that returns the exact integer. Explain the recurrence and sufficiency of every state, prove it does not double count, and give a brute-force cross-check for small n including empty and impossible cases. Do not invent an exact large integer if you cannot execute the computation; the executable algorithm is the required final answer. Finish with the actual code and conclusion."
+    }
+   ]
+  },
+  {
+   "name": "english_long",
+   "max_completion_tokens": 3072,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Count length-40 strings over {A,B,C} with exactly 12 A symbols, no adjacent equal symbols, and a number of occurrences of the substring AB divisible by 3. Derive and check a finite-state dynamic program, and provide clear Python code for the exact count. Reason carefully in English before answering; check edge cases and explain why each state is sufficient."
+    }
+   ]
+  },
+  {
+   "name": "english_markov_holdout",
+   "max_completion_tokens": 3072,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Reason carefully in English about this finite Markov chain. States are 0,1,2,3,4; states 0 and 4 are absorbing. From 1 the probabilities to 0,1,2 are 1/4,1/4,1/2; from 2 the probabilities to 1,2,3 are 1/3,1/6,1/2; from 3 the probabilities to 2,3,4 are 1/4,1/4,1/2. Starting at 2, derive the probability of absorption at 4, the conditional expected absorption time given absorption at 4, and its conditional variance. Explain why conditioning cannot be implemented by simply deleting transitions to 0 without renormalization. Derive first-step equations, compare a joint-moment method to a Doob h-transform, and give exact Fraction-based Python code with independently checkable equations and boundary cases. Conclude with a usable algorithm rather than merely naming a theorem."
+    }
+   ]
+  },
+  {
+   "name": "english_raft_holdout",
+   "max_completion_tokens": 3072,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Reason carefully in English about Raft single-server membership changes. A 3-node cluster {A,B,C} with leader A adds D and then removes B. Explain exactly when each configuration takes effect, why two majorities can never be disjoint during the change, what happens if A crashes after appending but before committing the C_new entry, and how a newly elected leader must treat an uncommitted configuration entry. Give a concrete event timeline and finish with a short checklist an implementer can test."
+    }
+   ]
+  },
+  {
+   "name": "english_graph_holdout",
+   "max_completion_tokens": 3072,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Reason carefully in English. Count the domino tilings of a 3 x 12 rectangle. Derive a transfer-matrix or recurrence with explicit states for partially filled columns, prove the states are sufficient and do not double count, check small widths by hand (3x2 and 3x4), and give self-contained Python that computes the exact count for 3 x n. Finish with the code and the value for n=12 only if your recurrence check is consistent."
+    }
+   ]
+  },
+  {
+   "name": "english_two_sixes",
+   "max_completion_tokens": 3072,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Reason carefully in English. A fair die is rolled until two consecutive sixes appear. Derive the expected number of rolls using a Markov chain with explicit states, then derive the variance as well. Check the expectation by a second method (conditioning on the first roll), and give short Python that simulates the process to sanity-check both numbers. Finish with the exact values."
+    }
+   ]
+  },
+  {
+   "name": "english_inversions",
+   "max_completion_tokens": 3072,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Reason carefully in English. Design an O(n log n) algorithm that counts inversions in an array of integers that may contain duplicates. Prove correctness of the merge step, analyze the running time with a recurrence, discuss what changes if equal elements should or should not count, and give clean Python with tests including empty, single, sorted, reverse-sorted and all-equal inputs."
+    }
+   ]
+  },
+  {
+   "name": "english_two_phase_commit",
+   "max_completion_tokens": 3072,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Reason carefully in English about two-phase commit with one coordinator and three participants. Walk through what each participant can and cannot safely do when the coordinator crashes (a) before sending any PREPARE, (b) after some participants voted YES, (c) after writing the COMMIT decision but before sending it. Explain why 2PC blocks, what a termination protocol can resolve, and finish with a precise state table."
+    }
+   ]
+  },
+  {
+   "name": "english_pell",
+   "max_completion_tokens": 3072,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Reason carefully in English. Find all positive integer solutions (x, y) with x < 10^6 of x^2 - 7 y^2 = 1. Derive the fundamental solution, prove how all solutions are generated, list the solutions in range, and give Python that verifies each listed pair and that none were missed by a direct search over y."
+    }
+   ]
+  },
+  {
+   "name": "english_triangle",
+   "max_completion_tokens": 3072,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Reason carefully in English about the triangle with side lengths 13, 14 and 15. Compute its area, inradius, circumradius, the three altitudes, and the distance between the incenter and circumcenter, verifying the last with Euler's formula. Place the triangle in coordinates to double-check at least two of the results, and finish with a clean summary table."
+    }
+   ]
+  },
+  {
+   "name": "english_no_three_ones",
+   "max_completion_tokens": 3072,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Reason carefully in English. Count binary strings of length 20 with no three consecutive 1s and an even number of 1s. Define a finite-state dynamic program, prove the states are sufficient, check lengths 0 to 4 by hand, and give self-contained Python with a brute-force cross-check for n up to 14. Finish with the code and the count for n=20 only if the cross-check is consistent."
+    }
+   ]
+  },
+  {
+   "name": "english_dcl_singleton",
+   "max_completion_tokens": 3072,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Reason carefully in English about double-checked locking for a lazily initialized singleton in C++. Explain the data race in the naive version under the C++ memory model, show a correct version using std::atomic with acquire/release, compare it with a function-local static and std::call_once, and discuss what happens on a weakly ordered CPU. Finish with recommended code and a short checklist."
+    }
+   ]
+  },
+  {
+   "name": "english_ladder",
+   "max_completion_tokens": 3072,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Reason carefully in English. A 10 m ladder leans against a vertical wall and its base slides away at 0.5 m/s. Find the rate at which the top slides down when the base is 6 m from the wall, the rate of change of the angle with the ground, and when (if ever) the model predicts the top's speed exceeds 5 m/s. Discuss when the top actually leaves the wall in a real physical model, and finish with clear numbers."
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,14 @@
+{
+  "auto": true,
+  "modelPolicies": [
+    {
+      "provider": "augur-local",
+      "model": "quasar-27b",
+      "thresholdRatio": 0.95,
+      "outputReservationTokens": 0,
+      "headroomTokens": 13107,
+      "retainTokens": 16384,
+      "maxTokens": 8192
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+// Explicit owner-fixed C4 query tile; six live GQA heads and planar Q8 format2.
+#define AUGUR_QWEN35_PLANAR_KV 1
+#define AUGUR_QWEN35_GQA8_C4 1
+#define augur_cuda_qwen35_rotated_kv_gqa8_validate_v1 augur_cuda_qwen35_rotated_kv_planar_gqa8_c4_validate_v1
+#define augur_cuda_qwen35_rotated_kv_gqa8_configure_v1 augur_cuda_qwen35_rotated_kv_planar_gqa8_c4_configure_v1
+#define augur_cuda_qwen35_rotated_kv_gqa8_submit_v1 augur_cuda_qwen35_rotated_kv_planar_gqa8_c4_submit_v1
+#include "augur_qwen35_rotated_kv_gqa8_sm70.cu"

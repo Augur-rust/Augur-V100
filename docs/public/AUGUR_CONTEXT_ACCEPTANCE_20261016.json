@@ -1,0 +1,100 @@
+{
+ "schema": "augur-context-acceptance-v1",
+ "date": "2026-10-16",
+ "hardware": "single Tesla V100 32 GB (SM70), Windows, TCC",
+ "build": "native-build-a6 (fused GDN glue, rw4 head, direct Q8 draft)",
+ "method": "one owner per run, 262,144-token KV capacity; one request per context; prompt = this repository source text (scripts/augur_bench_context.py) + an English question; 1,024 output tokens with hidden thinking; target sampling T=1 top_p=0.95 top_k=20 seed=0; uncached prefill. Bill columns come from a second run with AUGUR_DFLASH_GPU_BILL=1 (CUDA events), same prompts.",
+ "suite_sha256": "8b2e0991a5403927dd20c00cc33051a339604288e8f9b0c461315696cea00d03",
+ "rows": [
+  {
+   "case": "context_8k",
+   "capacity": 8192,
+   "prompt_tokens": 6744,
+   "prefill_s": 5.64,
+   "prefill_tps": 1194.9,
+   "output_tokens": 1024,
+   "native_tps": 53.47,
+   "ms_per_round": 49.7,
+   "tokens_per_round": 2.66,
+   "finish": "length",
+   "trajectory_sha256": "a4ebf7378b10401bd948f09a8da2cdac269ee19c668900d4f713cc09d4bafdcc",
+   "bill_ms_per_round": {
+    "gdn_layers": 21.81,
+    "full_attention_layers": 8.78,
+    "output_head": 3.23
+   }
+  },
+  {
+   "case": "context_32k",
+   "capacity": 32768,
+   "prompt_tokens": 31317,
+   "prefill_s": 30.69,
+   "prefill_tps": 1020.3,
+   "output_tokens": 1024,
+   "native_tps": 50.4,
+   "ms_per_round": 53.0,
+   "tokens_per_round": 2.674,
+   "finish": "length",
+   "trajectory_sha256": "1dc537a9c47a8e2c3e9d6cc0f94bbab36fd2f65476d4dc8c838b4acff6968885",
+   "bill_ms_per_round": {
+    "gdn_layers": 21.79,
+    "full_attention_layers": 12.04,
+    "output_head": 3.23
+   }
+  },
+  {
+   "case": "context_64k",
+   "capacity": 65536,
+   "prompt_tokens": 64040,
+   "prefill_s": 73.61,
+   "prefill_tps": 870.0,
+   "output_tokens": 1024,
+   "native_tps": 45.23,
+   "ms_per_round": 57.6,
+   "tokens_per_round": 2.606,
+   "finish": "length",
+   "trajectory_sha256": "c91f493f1103312f250a23e084fa2032f2cb8b38c3b65e2a325178ee74ca6729",
+   "bill_ms_per_round": {
+    "gdn_layers": 21.81,
+    "full_attention_layers": 16.64,
+    "output_head": 3.23
+   }
+  },
+  {
+   "case": "context_128k",
+   "capacity": 131072,
+   "prompt_tokens": 129622,
+   "prefill_s": 194.83,
+   "prefill_tps": 665.3,
+   "output_tokens": 1024,
+   "native_tps": 43.12,
+   "ms_per_round": 66.9,
+   "tokens_per_round": 2.885,
+   "finish": "length",
+   "trajectory_sha256": "686c83cca05cf4f6302364fd0428a13475a5940d98aae243a222ba94d3cb07e2",
+   "bill_ms_per_round": {
+    "gdn_layers": 21.78,
+    "full_attention_layers": 25.91,
+    "output_head": 3.23
+   }
+  },
+  {
+   "case": "context_256k",
+   "capacity": 262144,
+   "prompt_tokens": 260677,
+   "prefill_s": 573.6,
+   "prefill_tps": 454.5,
+   "output_tokens": 1024,
+   "native_tps": 32.95,
+   "ms_per_round": 85.4,
+   "tokens_per_round": 2.813,
+   "finish": "length",
+   "trajectory_sha256": "2d8dc84713f075c728c528b2993b5c507842a0a615d1f4d882ad991f6d5f30b2",
+   "bill_ms_per_round": {
+    "gdn_layers": 21.79,
+    "full_attention_layers": 44.36,
+    "output_head": 3.23
+   }
+  }
+ ]
+}

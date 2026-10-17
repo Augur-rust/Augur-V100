@@ -1,0 +1,16 @@
+[package]
+autoexamples = false
+name = "augur-reference"
+version = "0.0.1-alpha"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+augur-core = { path = "../augur-core" }
+augur-graph = { path = "../augur-graph" }
+augur-formats = { path = "../augur-formats" }
+augur-kernel-api = { path = "../augur-kernel-api" }
+
+[dev-dependencies]
+augur-repack = { path = "../augur-repack" }
+augur-kernels = { path = "../augur-kernels" }

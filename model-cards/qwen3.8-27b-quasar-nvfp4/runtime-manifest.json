@@ -1,0 +1,20 @@
+{
+  "schema": "quasar-session-model-manifest-v1",
+  "upstream_repo": "QUASAR-QAT/Qwen3.8-27B-QUASAR-NVFP4",
+  "upstream_revision": "d9af17e20644c5b9a6d66dff1d14f349e2e61b05",
+  "checkpoint": {
+    "config_sha256": "4a602978ea802d91171d3c5a8b99c5a23900ed474289133d9d0193a35ce3206b",
+    "index_sha256": "eee26dbb894969febd90ea21f29c10adc660267c47eeff63e08ef45611761046",
+    "shards": {
+      "model-00001-of-00005.safetensors": "54d83c1d36631de231876217a8e0c2483eccee8746369a482b79442bdfc5d958",
+      "model-00002-of-00005.safetensors": "bb5c367ac5ba8b2ab68f07b9719f1c3ac528ada98c26523be6e2c07f82e299bc",
+      "model-00003-of-00005.safetensors": "6bfa358557579f538682984a667e243a72ab361d50c583fbf06ba3148653fda1",
+      "model-00004-of-00005.safetensors": "260822c66711e7fbd9df0f96b0da0b54b01c2bd77612911885b33f88f18003d7",
+      "model-00005-of-00005.safetensors": "08e4c9bcd8ca371240cae47c98e5e1a499a14caeab5ee2ca4a0a07c24c69a24b"
+    }
+  },
+  "tokenizer_sha256": "0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3",
+  "tokenizer_config_sha256": "b11349aafa7cdc6a320767cf7ceb29ed82f7eda5d65e8e0819e76f0ce947bf27",
+  "generation_config_sha256": "b8eb74d15e0a56623d00ccd14950a4bb87fabbf84b5cc030dcc904b899fb1eb5",
+  "chat_template_sha256": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041"
+}

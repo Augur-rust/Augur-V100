@@ -1,0 +1,37 @@
+[package]
+autoexamples = false
+name = "augur-cuda-sys"
+version = "0.0.1-alpha"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+links = "augur_cuda_runtime"
+
+[features]
+qwen35-vision-affine = ["qwen35-prefill-cublas"]
+# Large QUASAR GEMM/GDN batches; Flash Attention remains tiled512.
+qwen35-augur-large-prefill = ["qwen35-prefill-cublas"]
+default = []
+cuda = []
+qwen35-linear-step = ["cuda"]
+qwen35-q8-packed-load = ["cuda"]
+# Isolated numerical ablation; never enable for a product build.
+qwen35-target-split-rope = ["cuda"]
+qwen35-native-f16-scale = ["cuda"]
+qwen35-nvfp4-fused-lb10 = ["cuda"]
+qwen35-gdn-warp-row = ["cuda"]
+qwen35-fused-head-norm-rope = ["cuda"]
+qwen35-warp-full-attention = ["cuda"]
+qwen35-full-attention-parallel-exp = ["qwen35-warp-full-attention"]
+qwen35-grouped-gqa-online-softmax = ["cuda"]
+qwen35-kv8-full-attention = ["qwen35-grouped-gqa-online-softmax"]
+qwen35-kv8-batched-attention = ["qwen35-kv8-full-attention"]
+qwen35-kv8-chunk-prefill = ["qwen35-prefill-cublas", "qwen35-kv8-full-attention"]
+qwen35-split-rmsnorm = ["cuda"]
+qwen35-fused-ffn-swiglu = ["cuda"]
+qwen35-device-token-handoff = ["cuda"]
+qwen35-prefill-cublas = ["qwen35-linear-step"]
+m306-k17-bf16-warp-row = ["cuda"]
+[dependencies]
+
+[build-dependencies]
+jobserver = "0.1.35"

@@ -1,0 +1,130 @@
+{
+ "schema": "augur-bench-suite-v1",
+ "name": "scenarios",
+ "description": "One request per everyday workload: math reasoning, code, structured output, refactoring, translation, Chinese reasoning, explanation and summarization. Measures native decode speed per scenario under the product sampling contract; answers are not graded.",
+ "request": {
+  "model": "quasar-27b",
+  "stream": false,
+  "enable_thinking": true,
+  "reasoning_effort": "xhigh",
+  "temperature": 1.0,
+  "top_p": 0.95,
+  "top_k": 20,
+  "min_p": 0,
+  "presence_penalty": 0,
+  "frequency_penalty": 0,
+  "seed": 0
+ },
+ "cases": [
+  {
+   "name": "math_competition",
+   "max_completion_tokens": 4096,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Find the number of ordered pairs (a, b) of positive integers with a + b <= 100 such that a*b + 1 is divisible by a + b. Reason step by step and put the final answer in \\boxed{}."
+    }
+   ]
+  },
+  {
+   "name": "math_proof",
+   "max_completion_tokens": 4096,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Prove that for every integer n >= 1, the number 5^(2n+1) + 2^(n+4) + 2^(n+1) is divisible by 23. Then prove that the sum of the reciprocals of the primes diverges. Give complete, rigorous proofs."
+    }
+   ]
+  },
+  {
+   "name": "code_python",
+   "max_completion_tokens": 4096,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Write a complete, well-commented Python module implementing an LRU cache with per-entry TTL, a thread-safe get/put API, O(1) operations, and a small unittest suite covering eviction order, expiry and concurrent access."
+    }
+   ]
+  },
+  {
+   "name": "code_rust",
+   "max_completion_tokens": 4096,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Write an idiomatic Rust library crate (lib.rs) for a bounded multi-producer single-consumer ring buffer using atomics, with safety comments on every unsafe block and unit tests."
+    }
+   ]
+  },
+  {
+   "name": "code_refactor",
+   "max_completion_tokens": 4096,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Refactor this JavaScript into modern TypeScript with explicit types, small pure functions and JSDoc, keeping behavior identical. Return the full file.\n\nvar data=[];function load(u,cb){var x=new XMLHttpRequest();x.open('GET',u);x.onload=function(){if(x.status==200){var j=JSON.parse(x.responseText);for(var i=0;i<j.items.length;i++){if(j.items[i].active){data.push({id:j.items[i].id,name:j.items[i].name.trim(),score:j.items[i].score||0})}}data.sort(function(a,b){return b.score-a.score});cb(null,data)}else{cb(new Error('bad '+x.status))}};x.onerror=function(){cb(new Error('net'))};x.send()}function top(n){var r=[];for(var i=0;i<n&&i<data.length;i++)r.push(data[i].name+' ('+data[i].score+')');return r.join(', ')}"
+    }
+   ]
+  },
+  {
+   "name": "json_extraction",
+   "max_completion_tokens": 4096,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Generate a JSON array of 40 fictional library books. Each object has exactly these keys: id (string, 'B' plus 4 digits), title, author, year (1900-2025), genres (array of 1-3 strings), available (boolean), shelf (string like 'C-12'). Output only the JSON."
+    }
+   ]
+  },
+  {
+   "name": "sql_schema",
+   "max_completion_tokens": 4096,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Design a PostgreSQL schema for a multi-tenant issue tracker (tenants, users, projects, issues, comments, labels, issue_labels, audit_log) with constraints, indexes and row-level security policies. Give the full DDL followed by five example queries."
+    }
+   ]
+  },
+  {
+   "name": "translation_zh_en",
+   "max_completion_tokens": 4096,
+   "messages": [
+    {
+     "role": "user",
+     "content": "把下面这段话翻译成自然流畅的英文，然后再给出一个更正式的版本：\n\n在长上下文推理中，显存带宽往往比算力更早成为瓶颈。每生成一个 token，注意力层都要把完整的键值缓存读一遍；上下文翻倍，这部分读取量也随之翻倍。因此，推理引擎的优化重点从矩阵乘法逐渐转向了数据的搬运方式：如何压缩缓存、如何让一次读取服务更多的查询，以及如何把多个小算子合并成一次访存。"
+    }
+   ]
+  },
+  {
+   "name": "chinese_reasoning",
+   "max_completion_tokens": 4096,
+   "messages": [
+    {
+     "role": "user",
+     "content": "一个水池有甲、乙两根进水管和丙一根出水管。单开甲 6 小时注满，单开乙 8 小时注满，单开丙 12 小时放空。先开甲乙两小时，再三管齐开，问还需多少小时注满？请用中文一步步推理，并说明每一步的依据。"
+    }
+   ]
+  },
+  {
+   "name": "english_explanation",
+   "max_completion_tokens": 4096,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Explain to a new graduate engineer how speculative decoding works, why it can be exact, where the speedup comes from, and when it stops helping. Use concrete numbers and one worked example."
+    }
+   ]
+  },
+  {
+   "name": "summarization",
+   "max_completion_tokens": 4096,
+   "messages": [
+    {
+     "role": "user",
+     "content": "Summarize the trade-offs between write-ahead logging and shadow paging for an embedded database, then produce a one-page design note recommending one for a battery-powered device that loses power unpredictably."
+    }
+   ]
+  }
+ ]
+}

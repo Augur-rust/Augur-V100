@@ -1,0 +1,53 @@
+# Build and dependency outputs
+/target/
+/tools/augur-quantize/target/
+__pycache__/
+*.py[cod]
+node_modules/
+.venv/
+venv/
+.pytest_cache/
+
+# Local settings and secrets; examples remain publishable
+.env
+.env.*
+!.env.example
+/.codex/
+/.idea/
+/.vscode/
+api-key.txt
+launcher-private.log
+config.local.json
+
+# Model weights, persistent KV/session data and private run receipts
+*.safetensors
+*.gguf
+*.pt
+*.pth
+/models/
+/weights/
+/user-data/
+/sessions/
+/cache/
+/caches/
+/runs/
+/evidence/
+/artifacts/
+/dist/
+
+# Generated manifests belong in frozen archives, not the editable Git tree
+/augur-release-source.json
+/release-preparation.json
+/augur-source-distribution.json
+/build-receipt.json
+/source-identity.json
+/cpu-complete.json
+/windows-distribution.json
+
+# Editor/OS leftovers
+*.tmp
+*.bak
+*.swp
+Thumbs.db
+.DS_Store
+/bench/long-context.json

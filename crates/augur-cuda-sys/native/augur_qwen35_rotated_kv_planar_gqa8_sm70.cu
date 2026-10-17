@@ -1,0 +1,6 @@
+// Separate format2 B1..8 entrypoints, same cohort/reduction math as format1.
+#define AUGUR_QWEN35_PLANAR_KV 1
+#define augur_cuda_qwen35_rotated_kv_gqa8_validate_v1 augur_cuda_qwen35_rotated_kv_planar_gqa8_validate_v1
+#define augur_cuda_qwen35_rotated_kv_gqa8_configure_v1 augur_cuda_qwen35_rotated_kv_planar_gqa8_configure_v1
+#define augur_cuda_qwen35_rotated_kv_gqa8_submit_v1 augur_cuda_qwen35_rotated_kv_planar_gqa8_submit_v1
+#include "augur_qwen35_rotated_kv_gqa8_sm70.cu"

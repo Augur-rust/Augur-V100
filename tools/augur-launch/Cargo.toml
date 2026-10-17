@@ -1,0 +1,20 @@
+[package]
+name = "augur-launch"
+version = "0.0.1-alpha"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "One-click Windows entry point for the Augur package"
+build = "build.rs"
+
+[workspace]
+
+[[bin]]
+name = "augur-launch"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
