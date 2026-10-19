@@ -8,6 +8,8 @@ Augur is a Rust/CUDA inference engine that runs a 27B NVFP4 reasoning model on a
 
 **75.9 tokens/s** native decode on 14 long English-thinking segments, sampled at temperature 1, top-p 0.95, top-k 20. That is 1.64× a conventional deterministic-draft baseline on the same GPU, with the output distribution unchanged.
 
+You can see the project demos here: https://x.com/Quaereee
+
 ## Performance
 
 Hardware: one Tesla V100 32 GB (SM70), Windows, TCC driver. Target: [QUASAR-QAT/Qwen3.8-27B-QUASAR-NVFP4](https://huggingface.co/QUASAR-QAT/Qwen3.8-27B-QUASAR-NVFP4), original weights and BF16 output head. Draft: DFlash2, converted by Augur to Q8_0 with an FP32 selector gate (see [below](#a-draft-converted-for-this-engine)). Native TPS = output tokens / native decode seconds, prefill excluded.
