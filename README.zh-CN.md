@@ -8,6 +8,8 @@ Augur 是一个 Rust/CUDA 推理引擎，在单张 Volta GPU（SM70，32 GiB）�
 
 在 14 段长英文思维链上，以 temperature 1、top-p 0.95、top-k 20 采样，原生解码 **75.9 tokens/s**。是同一 GPU 上常规确定性草稿基线的 1.64 倍，输出分布不变。
 
+项目效果展示可以看：https://x.com/Quaereee
+
 ## 性能
 
 硬件：单张 Tesla V100 32 GB（SM70），Windows，TCC 驱动。主模型：[QUASAR-QAT/Qwen3.8-27B-QUASAR-NVFP4](https://huggingface.co/QUASAR-QAT/Qwen3.8-27B-QUASAR-NVFP4)，原始权重与 BF16 输出头。草稿：DFlash2，由 Augur 转换为 Q8_0，selector gate 为 FP32（见[下文](#为本引擎转换的草稿)）。原生 TPS = 输出 token / 原生解码秒数，不含 prefill。
