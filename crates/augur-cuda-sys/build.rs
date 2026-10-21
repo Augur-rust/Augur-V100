@@ -42,8 +42,10 @@ fn main() {
     }
 
     println!("cargo:rerun-if-changed=native/augur_dflash_llama_bf16_head.cuh");
+    println!("cargo:rerun-if-changed=native/nerkyor_bf16_gate_pair_f32_cta.cuh");
     println!("cargo:rerun-if-changed=native/augur_dflash_q8_b8_direct.cuh");
     println!("cargo:rerun-if-changed=native/augur_nvfp4_small_gate.cuh");
+    println!("cargo:rerun-if-changed=native/augur_nvfp4_qpn_source_pair.cuh");
     println!("cargo:rerun-if-changed=native/augur_nvfp4_small_gate_pair.cuh");
     println!("cargo:rerun-if-changed=native/augur_rmsnorm_warp_tree5120.cuh");
     let mut cuda_sources = selected_cuda_sources_public();

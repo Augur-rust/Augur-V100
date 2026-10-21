@@ -592,7 +592,8 @@ mod tests {
     #[test]
     fn checkpoint_profiles_cannot_inherit_the_legacy_q8_tail() {
         for (kind,bits) in [(crate::Qwen35CheckpointProfile::QuasarNvfp4,4),
-                            (crate::Qwen35CheckpointProfile::NvidiaMixed,8)] {
+                            (crate::Qwen35CheckpointProfile::NvidiaMixed,8),
+                            (crate::Qwen35CheckpointProfile::NerkyorW4a16,4)] {
             let mut config=profile();
             config.quantization.source_profile=kind;
             config.quantization.group0_num_bits=bits;

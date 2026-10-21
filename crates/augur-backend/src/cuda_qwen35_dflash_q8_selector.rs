@@ -374,6 +374,18 @@ impl CudaQwen35DflashQ8SelectorArgsV1 {
             self.ordinal,stream.raw()?,&self.raw,address,1024,start,positions,temperatures.as_ptr(),pair_scales.as_ptr())};
         CudaRuntimeError::from_result(OP,result)
     }
+    /// Same proposal law and arithmetic as v1/v3, with an explicit run seed.
+    pub fn submit_probability_positions_seeded(&self,stream:&OwnedCudaStream,q:CudaBufferView,start:u64,positions:u32,
+        temperatures:[f32;7],pair_scales:[f32;7],seed:u64)->Result<(),CudaRuntimeError> {
+        let plain=temperatures==[1.0;7] && pair_scales==[1.0;7] && (1..=7).contains(&positions);
+        if !plain && !valid_probability_positions(positions,&temperatures,&pair_scales) {return Err(error(CudaRuntimeErrorKind::InvalidLayout));}
+        if stream.device_ordinal()!=self.ordinal {return Err(CudaRuntimeError::device_mismatch());}
+        let address=self.probability_address(q,start,positions)?;
+        // SAFETY: all retained disjoint buffers and seven-element host arrays are validated as v3.
+        let result=unsafe{augur_cuda_sys::augur_cuda_qwen35_dflash_q8_selector_probability_submit_v4(
+            self.ordinal,stream.raw()?,&self.raw,address,1024,start,positions,temperatures.as_ptr(),pair_scales.as_ptr(),seed)};
+        CudaRuntimeError::from_result(OP,result)
+    }
     /// Retained q belongs to this exact path. Caller retains owners until completion.
     pub fn submit_probability_prefix(&self,stream:&OwnedCudaStream,q:CudaBufferView,start:u64,positions:u32)->Result<(),CudaRuntimeError> {
         if stream.device_ordinal()!=self.ordinal {return Err(CudaRuntimeError::device_mismatch());}
@@ -602,14 +614,17 @@ mod tests {
             arms.push(([0.875,0.875,0.75,0.625,0.625,0.5,0.625],[1.0,1.5,1.5,1.5,1.5,1.5,1.5],3));
             arms.push(([1.5,0.5,1.0,0.75,1.25,0.5,1.5],[1.0,0.0,2.0,0.5,1.0,1.75,0.25],3));
             for (temps,scales,abi) in arms {
+            for seed in [0u64,1,2] {
             for n in [1,3,7] {if n!=7 && abi!=1 {continue;}
             for position in [0u64,512,32760,262000] {
                 let host=cuda_host_boundary_snapshot();let alloc=cuda_device_allocation_snapshot();
-                match abi {
+                if seed != 0 {
+                    bound.submit_probability_positions_seeded(&stream,q.view(0,1024)?,position,n,temps,scales,seed)?;
+                } else { match abi {
                     1=>bound.submit_probability_prefix(&stream,q.view(0,1024)?,position,n)?,
                     2=>bound.submit_probability_pos234(&stream,q.view(0,1024)?,position,n,temps[1],scales[1])?,
                     _=>bound.submit_probability_positions(&stream,q.view(0,1024)?,position,n,temps,scales)?,
-                }
+                }}
                 let delta=cuda_host_boundary_snapshot().checked_delta_since(host).unwrap();
                 assert_eq!((delta.synchronous_h2d_bytes,delta.synchronous_d2h_bytes,delta.host_waits),(0,0,0));
                 assert_eq!(cuda_device_allocation_snapshot().successful_allocations,alloc.successful_allocations);
@@ -628,16 +643,16 @@ mod tests {
                     if row<=n as usize {
                         let weights:Vec<_>=scores.iter().map(|x|((x-scores[best])/temp).exp()).collect();let sum: f64=weights.iter().sum();
                         for i in 0..16{probs[i]=weights[i]/sum;}
-                        let mut x=0x445241465450524fu64.wrapping_add((position+row as u64+1).wrapping_mul(0x9e3779b97f4a7c15));
+                        let mut x=(0x445241465450524fu64^seed).wrapping_add((position+row as u64+1).wrapping_mul(0x9e3779b97f4a7c15));
                         x=(x^(x>>30)).wrapping_mul(0xbf58476d1ce4e5b9);x=(x^(x>>27)).wrapping_mul(0x94d049bb133111eb);x^=x>>31;
                         let u=(x>>11) as f64/9007199254740992.0;let mut c=0.0;
                         for i in 0..16 {c+=probs[i];if u<c {best=i;break;}}
                     }else{probs[best]=1.0;}
-                    assert_eq!(path[row],best as u32,"abi={abi} n={n} position={position} row={row}");
+                    assert_eq!(path[row],best as u32,"seed={seed} abi={abi} n={n} position={position} row={row}");
                     for i in 0..16 {assert!((actual[row*16+i]-probs[i]).abs()<2e-13);}
                     previous=best as u32;
                 }
-            }}}
+            }}}}
             // Native validation cannot be bypassed by calling the raw ABI.
             for (n,t,s) in [(3,0.875,1.5),(7,f32::NAN,1.0),(7,1.0,f32::INFINITY),(7,0.0,1.0),(7,1.0,2.01)] {
                 assert!(bound.submit_probability_pos234(&stream,q.view(0,1024)?,0,n,t,s).is_err());

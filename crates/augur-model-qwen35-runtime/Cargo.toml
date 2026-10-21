@@ -148,6 +148,12 @@ qwen35-target-split-rope = ["qwen35-draft-target-verify", "augur-backend/qwen35-
 qwen35-augur-session = ["qwen35-target-split-rope", "qwen35-kv8-batched-attention", "qwen35-session-checkpoint"]
 # Opt-in device feature capture admission; does not enable drafting/publication.
 qwen35-augur-dflash-capture = ["qwen35-augur-session"]
+# Isolated new-checkpoint capture/embedding probe. No product/session admission.
+qwen35-nerkyor-dflash-research = ["qwen35-augur-dflash-capture"]
+# Model-specific token-session qualification; does not enable HTTP or old QUASAR gates.
+qwen35-nerkyor-session-research = ["qwen35-nerkyor-dflash-research", "qwen35-prefill-cublas", "qwen35-device-token-handoff"]
+# Own-model request-scoped cancellation; never enables QUASAR HTTP policies.
+qwen35-nerkyor-cancel-recovery = ["qwen35-nerkyor-session-research"]
 # Explicit QUASAR/Q8 draft bridge; no HTTP default or speculative commit promotion.
 qwen35-augur-dflash-bridge = ["qwen35-augur-dflash-capture"]
 
@@ -180,3 +186,7 @@ required-features = ["qwen35-augur-session"]
 
 [[example]]
 name = "augur_session_http"
+
+[[example]]
+name = "nerkyor_session_jsonl"
+required-features = ["qwen35-nerkyor-session-research"]

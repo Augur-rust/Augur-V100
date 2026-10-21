@@ -171,6 +171,22 @@ class LifecycleTests(unittest.TestCase):
                 self.assertIsNone(self.manager.ready)
                 process.stdout.close()
 
+    def test_child_reuses_current_bridge_and_explicit_native_runtime(self):
+        process = Mock()
+        process.stdin = io.BytesIO()
+        process.stdout = io.BytesIO(json.dumps(dict(event='augur_product_ready',
+            context_tokens=self.manager.config['context_tokens'])).encode() + b'\n')
+        self.addCleanup(process.stdin.close)
+        self.addCleanup(process.stdout.close)
+        with patch.object(self.manager, 'sync_api_key'), patch.object(self.manager, '_start_monitor'), \
+                patch.object(L.subprocess, 'Popen', return_value=process) as popen:
+            self.manager._start_engine(dict(self.manager.config, cache_enabled=False),
+                dict(manifest='manifest.json', manifest_sha256='a' * 64), {})
+        args = popen.call_args.args[0]
+        self.assertEqual(Path(args[5]), Path(L.__file__).with_name('augur_portable.py'))
+        self.assertEqual(args[6:9], ['engine', '--runtime-root', str(self.manager.package)])
+        self.assertIn('--stop-on-stdin', args)
+
     def test_one_operation_at_a_time(self):
         self.manager.operation = 'quantize'
         with self.assertRaises(RuntimeError):

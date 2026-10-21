@@ -456,6 +456,112 @@ void project_b1_single_cta(const uint8_t* __restrict__ physical,const half* __re
     }
 }
 
+// Packed hi/lo rows with a depth-D code/scale prefetch, one CTA per 32-row
+// tile. Same K partition, same four-group F32 MMA chunks, same ordered
+// four-warp F64 fold and same hi+lo*2^-12 merge as project_b1_single_cta; only
+// the issue order of the weight loads and the cache policy change. The codes
+// are read once per step and never reused, so __ldcs keeps them from evicting
+// the activation planes that ARE reused.
+//
+// Residency is the point: 256 threads at Blk=4 is the largest block count that
+// still compiles at 64 registers per thread. Every higher value spills and
+// collapses the kernel (measured: Blk=6 47.8 ms, Blk=8 223 ms), so Blk is not
+// a tuning knob past 4.
+template<int SplitK,int Blk,int Depth,bool ChunkFold=true,bool StreamLoad=true>
+__global__ __launch_bounds__(SplitK*32,Blk)
+void project_packed_prefetch(const uint8_t* __restrict__ physical,const half* __restrict__ x,
+                             float* __restrict__ output,int rows,int cols,float tensor_scale) {
+    static_assert(SplitK==8||SplitK==16,"qualified QPN schedules");
+    static_assert(Depth>=1&&Depth<=8,"measured prefetch depths");
+    constexpr int ChunkGroups=4;
+    __shared__ float partial[SplitK][256];
+    const int lane=threadIdx.x&31,warp=threadIdx.x>>5;
+    const int qp=(lane>>2)&3,r=(lane&3)+((lane&16)?4:0);
+    const int groups=cols/16,quotient=groups/SplitK;
+    const int begin=warp*quotient,end=warp==SplitK-1?groups:begin+quotient;
+    const uint64_t base=uint64_t(blockIdx.x)*groups*32U+lane;
+    const auto* scales=physical+uint64_t(rows)*cols/2U;
+    const half2 rebias=__float2half2_rn(16384.0f),divisor=__float2half2_rn(256.0f);
+    float accum[2][8]={};
+    double precise[8]={};
+    for(int chunk=begin;chunk<end;chunk+=Depth) {
+        const int span=min(Depth,end-chunk);
+        uint2 qq[Depth]; uint8_t ss[Depth];
+        #pragma unroll
+        for(int k=0;k<Depth;++k) if(k<span) {
+            const uint64_t index=base+uint64_t(chunk+k)*32U;
+            const uint2* codes=reinterpret_cast<const uint2*>(physical+index*8U);
+            if constexpr(StreamLoad) { qq[k]=__ldcs(codes); ss[k]=__ldcs(scales+index); }
+            else { qq[k]=__ldg(codes); ss[k]=__ldg(scales+index); }
+        }
+        #pragma unroll
+        for(int k=0;k<Depth;++k) {
+            if(k>=span) break;
+            const int group=chunk+k;
+            const half2 scale=__hmul2(__half2half2(__ushort_as_half(uint16_t(ss[k])<<7U)),divisor);
+            half2 weight[8];
+            decode_quad(qq[k].x,rebias,*reinterpret_cast<half2(*)[4]>(&weight[0]));
+            decode_quad(qq[k].y,rebias,*reinterpret_cast<half2(*)[4]>(&weight[4]));
+            #pragma unroll
+            for(int j=0;j<8;++j) weight[j]=__hmul2(weight[j],scale);
+            half values[16];
+            // Row0 carries the FP16 activation, row1 its residual plane. Rows
+            // 2..7 are idle at B1 and stay zero so they fold to nothing.
+            if(r<2) {
+                const half* source=x+uint64_t(r)*cols+group*16;
+                const uint4 lo=*reinterpret_cast<const uint4*>(source),hi=*reinterpret_cast<const uint4*>(source+8);
+                const auto* l=reinterpret_cast<const half*>(&lo);
+                const auto* h=reinterpret_cast<const half*>(&hi);
+                #pragma unroll
+                for(int j=0;j<8;++j) { values[j]=l[j];values[j+8]=h[j]; }
+            } else {
+                #pragma unroll
+                for(int j=0;j<16;++j) values[j]=__ushort_as_half(0);
+            }
+            const auto* a=reinterpret_cast<const unsigned*>(values);
+            const auto* b=reinterpret_cast<const unsigned*>(weight);
+            mma(accum[0],a[0],a[1],b[0],b[1]);
+            mma(accum[1],a[2],a[3],b[2],b[3]);
+            mma(accum[0],a[4],a[5],b[4],b[5]);
+            mma(accum[1],a[6],a[7],b[6],b[7]);
+            if constexpr(ChunkFold) {
+                if((group-begin+1)%ChunkGroups==0 || group+1==end) {
+                    #pragma unroll
+                    for(int i=0;i<8;++i) {
+                        // i bit1 addresses rows2/3; lane bit4 addresses rows4..7.
+                        if((i&2)==0 && (lane&16)==0)
+                            precise[i]+=double(accum[0][i])+double(accum[1][i]);
+                        accum[0][i]=accum[1][i]=0.0f;
+                    }
+                }
+            }
+        }
+    }
+    #pragma unroll
+    for(int i=0;i<8;++i) {
+        if constexpr(!ChunkFold) {
+            // Whole-slice F32 accumulation, widened once here. The F64 chunk
+            // fold above bounds the F32 chain instead; this variant keeps the
+            // MMA chain intact and pays for it with one conversion per element.
+            if((i&2)==0 && (lane&16)==0) precise[i]=double(accum[0][i])+double(accum[1][i]);
+        }
+        const int row=(i&2)|((lane&16)?4:0)|(lane&1);
+        const int column=qp*8+(i&1)+(((lane>>1)&1)<<1)+((i>>2)<<2);
+        if(row<2) partial[warp][row*32+column]=precise[i];
+    }
+    __syncthreads();
+    for(int e=threadIdx.x;e<256;e+=SplitK*32) {
+        const int row=e/32,column=blockIdx.x*32+e%32;
+        if(row<1 && column<rows) {
+            double value=0;
+            #pragma unroll
+            for(int w=0;w<SplitK;++w)
+                value+=double(partial[w][e])+double(partial[w][32+e])*0x1p-12;
+            output[column]=float(value*double(tensor_scale));
+        }
+    }
+}
+
 template<int SplitK>
 __global__ void project_workspace_merge(const double* __restrict__ partials,
                                         float* __restrict__ output,

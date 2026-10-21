@@ -2038,6 +2038,99 @@ augur_cuda_result_v1 submit_full_attention(int32_t ordinal,
         : cuda_result(AUGUR_CUDA_STATUS_SUBMISSION_FAILURE, error);
 }
 
+// Independent Nerkyor research profile: canonical B1 score/softmax arithmetic,
+// with eight causal query rows scheduled together. Legacy prefill is unchanged.
+__global__ void nerkyor_canonical_f32_kv_attention_kernel(
+    const float* query, const float* gate, const float* key_cache,
+    const float* value_cache, float* attention, float* gated,
+    uint32_t tokens, uint32_t position_base) {
+    const uint32_t token = blockIdx.x / kFullQueryHeads;
+    const uint32_t head = blockIdx.x % kFullQueryHeads;
+    const uint32_t component = threadIdx.x;
+    if (token >= tokens || component >= kFullHeadDim) return;
+    const uint32_t visible = position_base + token + 1U;
+    const uint32_t kv_head = head / (kFullQueryHeads / kFullKvHeads);
+    const uint64_t base = static_cast<uint64_t>(token) * kFullQueryElements
+        + static_cast<uint64_t>(head) * kFullHeadDim;
+    __shared__ float weights[kFullMaxCapacity];
+    const uint32_t lane = component & 31U, warp = component >> 5U;
+    for (uint32_t pos = warp; pos < visible; pos += 8U) {
+        const uint64_t key = static_cast<uint64_t>(pos) * kFullKvElements
+            + static_cast<uint64_t>(kv_head) * kFullHeadDim;
+        double score = 0.0;
+        for (uint32_t col = lane; col < kFullHeadDim; col += 32U)
+            score += static_cast<double>(query[base + col]) * static_cast<double>(key_cache[key + col]);
+        for (uint32_t offset = 16U; offset != 0U; offset >>= 1U)
+            score += __shfl_down_sync(0xffffffffU, score, offset);
+        if (lane == 0U) weights[pos] = static_cast<float>(score) * rsqrtf(static_cast<float>(kFullHeadDim));
+    }
+    __syncthreads();
+    if (component == 0U) {
+        float maximum = -INFINITY;
+        for (uint32_t pos = 0; pos < visible; ++pos) maximum = fmaxf(maximum, weights[pos]);
+        float denominator = 0.0f;
+        for (uint32_t pos = 0; pos < visible; ++pos) {
+            const float weight = expf(weights[pos] - maximum);
+            weights[pos] = weight; denominator += weight;
+        }
+        const float inverse = 1.0f / denominator;
+        for (uint32_t pos = 0; pos < visible; ++pos) weights[pos] *= inverse;
+    }
+    __syncthreads();
+    float result = 0.0f;
+    for (uint32_t pos = 0; pos < visible; ++pos) {
+        const uint64_t value = static_cast<uint64_t>(pos) * kFullKvElements
+            + static_cast<uint64_t>(kv_head) * kFullHeadDim;
+        result += weights[pos] * value_cache[value + component];
+    }
+    attention[base + component] = result;
+    gated[base + component] = result * prefill_sigmoid(gate[base + component]);
+}
+
+augur_cuda_result_v1 submit_nerkyor_canonical_full_attention(int32_t ordinal,
+    augur_cuda_stream_t stream,
+    const augur_cuda_qwen35_prefill_full_attention_args_v1* args) {
+    if (!full_attention_metadata_valid(ordinal, stream, args, false) || args->tokens > 8U) {
+        return result(AUGUR_CUDA_STATUS_INVALID_ARGUMENT, 0);
+    }
+    float epsilon = 0.0f;
+    std::memcpy(&epsilon, &args->epsilon_bits, sizeof(epsilon));
+    const uint32_t prepare_blocks = args->tokens
+        * (kFullQueryHeads + kFullKvHeads);
+    prefill_full_prepare_qkv_kernel<<<prepare_blocks, kFullHeadDim, 0,
+        stream->stream>>>(
+        reinterpret_cast<const float*>(static_cast<uintptr_t>(args->q_full_f32)),
+        reinterpret_cast<const float*>(static_cast<uintptr_t>(args->k_raw_f32)),
+        reinterpret_cast<const float*>(static_cast<uintptr_t>(args->value_f32)),
+        reinterpret_cast<const float*>(static_cast<uintptr_t>(args->q_norm_weight_f32)),
+        reinterpret_cast<const float*>(static_cast<uintptr_t>(args->k_norm_weight_f32)),
+        reinterpret_cast<const float*>(static_cast<uintptr_t>(args->rope_cos_f32)),
+        reinterpret_cast<const float*>(static_cast<uintptr_t>(args->rope_sin_f32)),
+        reinterpret_cast<float*>(static_cast<uintptr_t>(args->key_cache_f32)),
+        reinterpret_cast<float*>(static_cast<uintptr_t>(args->value_cache_f32)),
+        reinterpret_cast<float*>(static_cast<uintptr_t>(args->query_f32)),
+        reinterpret_cast<float*>(static_cast<uintptr_t>(args->gate_f32)),
+        args->tokens, args->position_base, epsilon);
+    cudaError_t error = cudaGetLastError();
+    if (error != cudaSuccess) {
+        return cuda_result(AUGUR_CUDA_STATUS_SUBMISSION_FAILURE, error);
+    }
+    const uint32_t attention_blocks = args->tokens * kFullQueryHeads;
+    nerkyor_canonical_f32_kv_attention_kernel<<<attention_blocks, kFullHeadDim, 0,
+        stream->stream>>>(
+        reinterpret_cast<const float*>(static_cast<uintptr_t>(args->query_f32)),
+        reinterpret_cast<const float*>(static_cast<uintptr_t>(args->gate_f32)),
+        reinterpret_cast<const float*>(static_cast<uintptr_t>(args->key_cache_f32)),
+        reinterpret_cast<const float*>(static_cast<uintptr_t>(args->value_cache_f32)),
+        reinterpret_cast<float*>(static_cast<uintptr_t>(args->attention_f32)),
+        reinterpret_cast<float*>(static_cast<uintptr_t>(args->gated_f32)),
+        args->tokens, args->position_base);
+    error = cudaGetLastError();
+    return error == cudaSuccess
+        ? result(AUGUR_CUDA_STATUS_OK, 0)
+        : cuda_result(AUGUR_CUDA_STATUS_SUBMISSION_FAILURE, error);
+}
+
 #if defined(AUGUR_CUDA_QWEN35_KV8_FULL_ATTENTION)
 __device__ __forceinline__ float prefill_kv8_warp_max(float value) {
     #pragma unroll
@@ -5660,6 +5753,17 @@ augur_cuda_qwen35_prefill_full_attention_prevalidated_submit_v1(
     augur_cuda_stream_t stream,
     const augur_cuda_qwen35_prefill_full_attention_args_v1* args) {
     return submit_full_attention(ordinal, stream, args);
+}
+
+extern "C" augur_cuda_result_v1 AUGUR_CUDA_CALL
+augur_cuda_nerkyor_prefill_full_attention_canonical_submit_v1(
+    int32_t ordinal, augur_cuda_stream_t stream,
+    const augur_cuda_qwen35_prefill_full_attention_args_v1* args) {
+#if defined(AUGUR_CUDA_QWEN35_WARP_FULL_ATTENTION) && defined(AUGUR_CUDA_QWEN35_DIAGNOSTIC_SPLIT_ROPE)
+    return submit_nerkyor_canonical_full_attention(ordinal, stream, args);
+#else
+    return result(AUGUR_CUDA_STATUS_INVALID_ARGUMENT, 0);
+#endif
 }
 
 #if defined(AUGUR_CUDA_QWEN35_TC_PREFIX_ATTENTION)

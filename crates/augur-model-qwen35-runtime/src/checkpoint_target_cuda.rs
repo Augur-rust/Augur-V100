@@ -21,6 +21,8 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 pub mod dflash_capture;
 #[cfg(feature = "qwen35-augur-dflash-bridge")]
 pub mod dflash_bridge;
+#[cfg(feature = "qwen35-nerkyor-dflash-research")]
+pub mod nerkyor_dflash_research;
 #[cfg(feature = "qwen35-augur-http")]
 mod sampling;
 enum Layer {
@@ -137,7 +139,12 @@ impl CheckpointCudaTarget {
         policy: CheckpointProjectionPolicy,
         kv_policy: CheckpointKvPolicy,
     ) -> Result<Self> {
-        if policy.uses_qpn_projections() && profile != Qwen35CheckpointProfile::QuasarNvfp4 {
+        if policy.uses_nerkyor_gate_f32_cta_research()
+            && (profile != Qwen35CheckpointProfile::NerkyorW4a16 || kv_policy != CheckpointKvPolicy::F32) {
+            return Err("Nerkyor BF16 gate research requires the explicit new-model profile and F32 KV".into());
+        }
+        if policy.uses_qpn_projections() && !policy.uses_nerkyor_qpn_research() && !policy.uses_nerkyor_qpn_source_pair()
+            && profile != Qwen35CheckpointProfile::QuasarNvfp4 {
             return Err("expanded QPN target policy is explicitly Augur-only".into());
         }
         if policy.uses_fp8_warp() && profile != Qwen35CheckpointProfile::NvidiaMixed {
@@ -311,19 +318,23 @@ impl CheckpointCudaTarget {
             "qpn_non_ffn_projection_count":if policy.uses_qpn_projections() {208} else {0},
             "qpn_small_48row_gates_remain_original":policy.uses_qpn_projections() && !policy.uses_small_gate_split16(),
             "small_gate_split16_count":if policy.uses_small_gate_split16() {96} else {0},
-            "small_gate_numeric_contract":if policy.uses_small_gate_split16() {"f32_pair_contiguous_K16_f64_ordered_split_fold_then_warp_v1"} else {"original_f32_pair_serial_K_f64_then_warp_v1"},
+            "small_gate_numeric_contract":if policy.uses_nerkyor_gate_f32_cta_research() {"bf16_f32_fma_cta256_tree_research_v1"} else if policy.uses_small_gate_split16() {"f32_pair_contiguous_K16_f64_ordered_split_fold_then_warp_v1"} else {"original_f32_pair_serial_K_f64_then_warp_v1"},
             "small_gate_added_hbm_workspace_bytes":0,
-            "small_gate_pair_count":if policy.small_gate_pair_schedule().is_some() {48} else {0},
+            "small_gate_pair_count":if policy.small_gate_pair_schedule().is_some() || policy.uses_nerkyor_gate_f32_cta_research() {48} else {0},
+            "nerkyor_gate_f32_cta_research":policy.uses_nerkyor_gate_f32_cta_research(),
+            "nerkyor_large_source_split8_research":policy.uses_nerkyor_source_split8_research(),
+            "qpn_source_pair_exact_projection_count":if policy.uses_nerkyor_qpn_source_pair() {400} else {0},
+            "qpn_source_pair_arithmetic":if policy.uses_nerkyor_qpn_source_reassoc() {"source_f32_pair_reassoc_k16_even_odd_f64_fold_v1"} else if policy.uses_nerkyor_qpn_source_pair() {"source_f32_pair_interleaved4_f64_source_warp_tree_v1"} else {"not_applicable"},
             "small_gate_pair_schedule":policy.small_gate_pair_schedule().map(|s|format!("{s:?}")),
             "qpn_activation_residual_repair":policy.qpn_residual(),
             "qpn_residual_scale":if policy.qpn_residual() {4096} else {0},
             "qpn_finite_low_component_limit":if policy.qpn_residual() {65504} else {0},
             "qpn_activation_overflow_clamped":false,
-            "qpn_f64_chunk_groups":match policy {CheckpointProjectionPolicy::AugurQpnAllRefinedF64 | CheckpointProjectionPolicy::AugurQpnAllWorkspaceF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceCtaFoldF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallPairF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallPairPrefetchF64=>4,CheckpointProjectionPolicy::AugurQpnAllRefinedFastF64=>16,_=>0},
-            "qpn_residual_chunk_groups":if matches!(policy,CheckpointProjectionPolicy::AugurQpnAllRefinedF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceCtaFoldF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallPairF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallPairPrefetchF64) {4} else {0},
+            "qpn_f64_chunk_groups":if policy.uses_nerkyor_qpn_research() {4} else {match policy {CheckpointProjectionPolicy::AugurQpnAllRefinedF64 | CheckpointProjectionPolicy::AugurQpnAllWorkspaceF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceCtaFoldF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallPairF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallPairPrefetchF64|CheckpointProjectionPolicy::AugurQpnAllWorkspacePackedF32=>4,CheckpointProjectionPolicy::AugurQpnAllRefinedFastF64=>16,_=>0}},
+            "qpn_residual_chunk_groups":if policy.uses_nerkyor_qpn_research() || matches!(policy,CheckpointProjectionPolicy::AugurQpnAllRefinedF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceCtaFoldF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallPairF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallPairPrefetchF64|CheckpointProjectionPolicy::AugurQpnAllWorkspacePackedF32) {4} else {0},
             "qpn_hi_lo_schedule":if policy.qpn_workspace() {"B1..B4_packed_MMA_rows_B5..B8_parallel_CTAs"} else {"in_warp"},
             "qpn_split_k_shape_policy":if policy.qpn_shape_split() {"k/v1024x5120_out5120x6144=32;FFN_qkv_z_q=16;other=8"} else {"gate/up17408x5120=16;other=8"},
-            "qpn_partial_component_warps_folded":if matches!(policy,CheckpointProjectionPolicy::AugurQpnAllWorkspaceCtaFoldF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallPairF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallPairPrefetchF64) {4} else {1},
+            "qpn_partial_component_warps_folded":if policy.uses_nerkyor_qpn_research() || matches!(policy,CheckpointProjectionPolicy::AugurQpnAllWorkspaceCtaFoldF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallPairF64|CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallPairPrefetchF64|CheckpointProjectionPolicy::AugurQpnAllWorkspacePackedF32) {4} else {1},
             "qpn_scalar_f64_partial_workspace_bytes":if policy.qpn_workspace() {17408*16*16} else {0},
             "rmsnorm_schedule":"canonical_shared256_v1","rmsnorm_added_hbm_bytes":0,
             "qpn_b1_live_row_schedule":if policy.qpn_shape_split() || policy==CheckpointProjectionPolicy::AugurQpnAllWorkspaceCtaFoldF64 {"workspace_CTA_fold_live_hi_lo_rows_v1"} else {"not_applicable"},
@@ -830,6 +841,9 @@ mod transfer_tests;
 mod context_timing_tests;
 #[cfg(all(test, feature = "qwen35-augur-http"))]
 mod native_decode_tests;
+
+#[cfg(all(test, any(feature = "qwen35-augur-http", feature = "qwen35-nerkyor-dflash-research")))]
+mod no_dflash_alignment_tests;
 
 #[cfg(feature = "qwen35-prefill-cublas")]
 mod ffn_batch {

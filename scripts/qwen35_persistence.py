@@ -15,7 +15,7 @@ import re
 import stat
 import uuid
 
-from qwen35_chat import (Ledger, PROFILES, SCHEMA as STREAM_SCHEMA, digest_string,
+from qwen35_chat import (Ledger, MAX_MESSAGES, PROFILES, SCHEMA as STREAM_SCHEMA, digest_string,
                         require, sha256, strict_json, token_hash)
 
 SCHEMA = 'qwen35-chat-client-checkpoint-v1'
@@ -92,7 +92,9 @@ def validate_state(state, template):
     consumed_visible = visible if stop == 'eos' else visible[:-1]
     require(not consumed_visible or history[-len(consumed_visible):] == consumed_visible,
             'last visible output absent from consumed tail')
-    require(type(messages) is list and 2 <= len(messages) <= 129, 'bounded completed conversation required')
+    # A completed ledger contains the request plus its assistant response.
+    require(type(messages) is list and 2 <= len(messages) <= MAX_MESSAGES + 1,
+            'bounded completed conversation required')
     offset = int(messages[0].get('role') == 'system') if isinstance(messages[0], dict) else 0
     require((len(messages) - offset) % 2 == 0, 'complete user/assistant pairs required')
     for index, message in enumerate(messages):

@@ -717,3 +717,6 @@ mod tests {
         eprintln!("QPN real ABI every width1..8/B128, refreshed-input graph, existing cuBLAS workspace, all physical/FP16 words and owner cleanup PASS: {rows}x{cols}");
     }
 }
+
+/// Separate source-activation numerical research, not QPN Tensor Core math.
+pub mod source_pair;

@@ -316,7 +316,8 @@ class Manager:
         draft_file = self.run_dir / 'draft-environment.json'
         C.atomic_json(draft_file, draft)
         arguments = [str(self.package / 'runtime/python/python.exe'), '-I', '-X', 'utf8', '-B',
-                     str(self.package / 'source/scripts/augur_portable.py'), 'engine',
+                     str(Path(__file__).with_name('augur_portable.py')), 'engine',
+                     '--runtime-root', str(self.package),
                      '--model-dir', config['model_dir'], '--manifest', admission['manifest'],
                      '--manifest-sha256', admission['manifest_sha256'], '--draft-environment', str(draft_file),
                      '--context-tokens', str(config['context_tokens']),

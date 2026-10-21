@@ -86,7 +86,13 @@ impl Qwen35Config {
         expect_bool(text, "attention_bias", false)?;
         expect_bool(text, "attn_output_gate", true)?;
         expect_bool(text, "tie_word_embeddings", false)?;
-        expect_bool(text, "use_cache", true)?;
+        // The source export disables HF caching; this is metadata validation,
+        // not a prohibition on the separately owned runtime KV/GDN cache.
+        expect_bool(
+            text,
+            "use_cache",
+            profile != Qwen35CheckpointProfile::NerkyorW4a16,
+        )?;
         expect_string(text, "output_gate_type", "swish")?;
         expect_string(text, "mamba_ssm_dtype", "float32")?;
         if !required(root, "vision_config")?
@@ -236,7 +242,7 @@ impl Qwen35Config {
                 "unexpected Qwen token ids",
             ));
         }
-        let attention_bits = if self.quantization.source_profile == Qwen35CheckpointProfile::QuasarNvfp4 {4} else {8};
+        let attention_bits = if matches!(self.quantization.source_profile, Qwen35CheckpointProfile::QuasarNvfp4 | Qwen35CheckpointProfile::NerkyorW4a16) {4} else {8};
         if self.quantization.group0_num_bits != attention_bits
             || self.quantization.group1_num_bits != 4
             || self.quantization.group1_group_size != 16

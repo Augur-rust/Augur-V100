@@ -754,14 +754,14 @@ pub struct CheckpointCudaOutputHead {
 impl CheckpointCudaOutputHead {
 
 
-    #[cfg(feature = "qwen35-augur-dflash-bridge")]
+    #[cfg(any(feature = "qwen35-augur-dflash-bridge", feature = "qwen35-nerkyor-dflash-research"))]
     pub(crate) fn bind_shared_normalized_bf16(
         &self, stream: &Rc<OwnedCudaStream>, input: Buffer, input_offset: usize,
         output: Buffer, output_offset: usize,
     ) -> Result<CheckpointScalarCudaProjection> {
         self.projection.rebind_shared_bf16_head(stream, input, input_offset, output, output_offset)
     }
-    #[cfg(all(feature="qwen35-prefill-cublas",feature="qwen35-augur-dflash-bridge"))]
+    #[cfg(all(feature="qwen35-prefill-cublas",any(feature="qwen35-augur-dflash-bridge",feature="qwen35-nerkyor-dflash-research")))]
     pub(crate) fn bind_shared_normalized_bf16_rows(&self,stream:&Rc<OwnedCudaStream>,input:Buffer,output:Buffer,rows:usize)
         -> Result<crate::checkpoint_projection_cuda::CheckpointSharedBf16HeadRows> {
         self.projection.rebind_shared_bf16_head_rows(stream,input,output,rows)
@@ -911,3 +911,15 @@ impl CheckpointFullCudaLayer {
 
 #[cfg(feature = "qwen35-augur-http")]
 mod b1_graph;
+
+#[cfg(all(feature = "qwen35-prefill-cublas", feature = "qwen35-nerkyor-dflash-research"))]
+pub(crate) mod nerkyor_batch;
+
+#[cfg(all(feature = "qwen35-prefill-cublas", feature = "qwen35-nerkyor-dflash-research"))]
+impl CheckpointCudaOutputHead {
+    pub(crate) fn bind_research_rows_norm(&self,stream:&Rc<OwnedCudaStream>,input:&OwnedCudaBuffer,
+        output:&OwnedCudaBuffer,epsilon:f32)->Result<Vec<CudaRmsnormF32ArgsV1>> {
+        if !Rc::ptr_eq(stream,&self.stream){return Err("foreign research head stream".into());}
+        crate::checkpoint_target_cuda::nerkyor_dflash_research::batched::norms(stream,input,&self._norm_weight,output,epsilon)
+    }
+}

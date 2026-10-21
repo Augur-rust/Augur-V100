@@ -108,7 +108,9 @@ def validate_request(value, model):
              and type(stream_options.get('include_usage', False)) is bool,
              'stream_options supports only boolean include_usage with stream=true.', 'stream_options')
     messages = value.get('messages')
-    need(type(messages) is list and 1 <= len(messages) <= 129, '1..129 text messages required.', 'messages')
+    need(type(messages) is list and bool(messages), 'messages must be a non-empty array.', 'messages')
+    need(len(messages) <= C.MAX_MESSAGES,
+         f'messages contains {len(messages)} entries; maximum is {C.MAX_MESSAGES}.', 'messages')
     if any(k in value for k in ('tools','tool_choice','parallel_tool_calls')) or any(
             isinstance(m,dict) and (m.get('role')=='tool' or m.get('tool_calls')) for m in messages):
         try:
@@ -319,6 +321,7 @@ class Controller:
         return dict(model=self.model, text_only=True, greedy=True, n=1, stream=True,
             full_kv_capacity=196608, draft_history=2048, native_limits=self.limits,
             exact_history_reuse=True, tool_calls=True, vision_forward=False,
+            max_messages=C.MAX_MESSAGES, user_steering_after_tool_results=True,
             tool_call_types=['function'], tool_choice=['auto','none','required','named_function'],
             parallel_tool_calls=True, tool_argument_schema_validation=True,
             strict_constrained_generation=False, tool_execution='client_only',
@@ -696,6 +699,7 @@ class Handler(BaseHTTPRequestHandler):
                 payload = C.strict_json(raw)
             except (ValueError, UnicodeError, RecursionError) as error:
                 raise ApiError('Malformed or non-finite JSON.') from error
+            need(type(payload) is dict, 'A JSON object is required.')
             streaming = payload.get('stream') is True
             metadata, options = {}, {}
             terminal_events = []

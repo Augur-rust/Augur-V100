@@ -151,6 +151,7 @@ __device__ __forceinline__ int2 e2m1_doubled_words(uint32_t packed) {
 
 #include "augur_nvfp4_small_gate.cuh"
 #include "augur_nvfp4_small_gate_pair.cuh"
+#include "augur_nvfp4_qpn_source_pair.cuh"
 
 __global__ void nvfp4_sm70_f32_matvec_kernel(
     const uint8_t* weight,
@@ -586,6 +587,86 @@ extern "C" augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_nvfp4_sm70_f32_matvec
     return error == cudaSuccess
         ? nvfp4_ok()
         : nvfp4_error(AUGUR_CUDA_STATUS_SUBMISSION_FAILURE, error);
+}
+
+// Distinct physical-layout entry: the weight MUST be QPN planes, not GGML36.
+// The Rust owner is typed to QPN and retains every operand/workspace allocation.
+extern "C" augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_nvfp4_sm70_qpn_source_pair_submit_v1(
+    int32_t ordinal,augur_cuda_stream_t stream,const augur_cuda_nvfp4_sm70_f32_matvec_args_v1* a,
+    uint32_t mode,uint32_t splits,uint64_t partial,uint64_t partial_bytes) {
+    uint64_t w=0,x=0,y=0;
+    if(!valid_args(ordinal,stream,a,&w,&x,&y)||stream->stream==nullptr
+       ||a->rows%32U||a->cols%64U||a->weight%16U||a->input_len_bytes!=x||a->output_len_bytes!=y
+       ||!ranges_disjoint(a->weight,w,a->input,x)||!ranges_disjoint(a->weight,w,a->output,y)
+       ||!ranges_disjoint(a->input,x,a->output,y)||mode>4U
+       ||(mode==0U&&splits!=1U&&splits!=4U&&splits!=8U&&splits!=16U)
+       ||(mode==1U&&splits!=4U&&splits!=8U&&splits!=16U&&splits!=32U)
+       ||(mode>=2U&&splits!=4U)
+       ||(mode>=3U&&(a->input%16U)))
+        return nvfp4_error(AUGUR_CUDA_STATUS_INVALID_ARGUMENT,cudaSuccess);
+    if(mode!=1U) {
+        if(partial||partial_bytes)return nvfp4_error(AUGUR_CUDA_STATUS_INVALID_ARGUMENT,cudaSuccess);
+    } else if(partial_bytes!=uint64_t(a->rows)*splits*8U||partial%8U||!checked_range(partial,partial_bytes)
+        ||!ranges_disjoint(partial,partial_bytes,a->weight,w)||!ranges_disjoint(partial,partial_bytes,a->input,x)
+        ||!ranges_disjoint(partial,partial_bytes,a->output,y))
+        return nvfp4_error(AUGUR_CUDA_STATUS_INVALID_ARGUMENT,cudaSuccess);
+    const auto device=nvfp4_set_device(ordinal);if(device.status!=AUGUR_CUDA_STATUS_OK)return device;
+    const auto* weight=reinterpret_cast<const uint8_t*>(static_cast<uintptr_t>(a->weight));
+    const auto* input=reinterpret_cast<const float*>(static_cast<uintptr_t>(a->input));
+    auto* output=reinterpret_cast<float*>(static_cast<uintptr_t>(a->output));
+    if(mode==4U) {
+        // Bench-selected: 16 K-streams, 32 for the narrow 1024-row K/V.
+        if(a->rows<=2048U)
+            qpn_source_pair::source_reassoc_kernel<32><<<a->rows/32U,1024,0,stream->stream>>>(weight,input,output,a->rows,a->cols,a->tensor_scale);
+        else
+            qpn_source_pair::source_reassoc_kernel<16><<<a->rows/32U,512,0,stream->stream>>>(weight,input,output,a->rows,a->cols,a->tensor_scale);
+    } else if(mode==3U) {
+        // Order-identical prefetch issue of mode 2. The bench-selected split:
+        // wide-output shapes keep all eight chains per thread, narrow ones
+        // split them over two warps per stream for more loads in flight.
+        if(a->rows>=10240U&&a->rows!=17408U)
+            qpn_source_pair::source_prefetch_kernel<8,4><<<a->rows/32U,128,0,stream->stream>>>(weight,input,output,a->rows,a->cols,a->tensor_scale);
+        else
+            qpn_source_pair::source_prefetch_kernel<4,4><<<a->rows/32U,256,0,stream->stream>>>(weight,input,output,a->rows,a->cols,a->tensor_scale);
+    } else if(mode==2U) {
+        qpn_source_pair::source_exact_kernel<<<a->rows/32U,128,0,stream->stream>>>(weight,input,output,a->rows,a->cols,a->tensor_scale);
+    } else if(mode==0U) {
+        #define QPN_SOURCE_CTA(S) case S:qpn_source_pair::cta_kernel<S><<<a->rows/32U,S*32U,0,stream->stream>>>(weight,input,output,a->rows,a->cols,a->tensor_scale);break
+        switch(splits){QPN_SOURCE_CTA(1);QPN_SOURCE_CTA(4);QPN_SOURCE_CTA(8);QPN_SOURCE_CTA(16);}
+        #undef QPN_SOURCE_CTA
+    } else {
+        auto* scratch=reinterpret_cast<double*>(static_cast<uintptr_t>(partial));
+        qpn_source_pair::parts_kernel<<<dim3((a->rows+127U)/128U,splits),128,0,stream->stream>>>(weight,input,scratch,a->rows,a->cols,splits);
+        const auto e=cudaGetLastError();if(e!=cudaSuccess)return nvfp4_error(AUGUR_CUDA_STATUS_SUBMISSION_FAILURE,e);
+        qpn_source_pair::merge_kernel<<<(a->rows+255U)/256U,256,0,stream->stream>>>(scratch,output,a->rows,splits,a->tensor_scale);
+    }
+    const auto e=cudaGetLastError();return e==cudaSuccess?nvfp4_ok():nvfp4_error(AUGUR_CUDA_STATUS_SUBMISSION_FAILURE,e);
+}
+
+// Separate large-projection research entry. Reuse the established source-F32
+// pair / ordered F64 SplitK fold, but never widen the small-gate ABI itself.
+extern "C" augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_nvfp4_sm70_large_split8_submit_v1(
+    int32_t ordinal, augur_cuda_stream_t stream,
+    const augur_cuda_nvfp4_sm70_f32_matvec_args_v1* args
+) {
+    uint64_t w=0,x=0,y=0;
+    if (!valid_args(ordinal,stream,args,&w,&x,&y) || stream->stream==nullptr
+        || args->rows<1024 || args->rows%32 || args->cols<5120 || args->cols%512
+        || args->input_len_bytes!=x || args->output_len_bytes!=y
+        || args->weight%alignof(uint32_t)
+        || !ranges_disjoint(args->weight,w,args->input,x)
+        || !ranges_disjoint(args->weight,w,args->output,y)
+        || !ranges_disjoint(args->input,x,args->output,y))
+        return nvfp4_error(AUGUR_CUDA_STATUS_INVALID_ARGUMENT,cudaSuccess);
+    const auto device=nvfp4_set_device(ordinal);
+    if(device.status!=AUGUR_CUDA_STATUS_OK)return device;
+    nvfp4_sm70_small_gate_split_f64_kernel<8><<<args->rows,256,0,stream->stream>>>(
+        reinterpret_cast<const uint8_t*>(static_cast<uintptr_t>(args->weight)),
+        reinterpret_cast<const float*>(static_cast<uintptr_t>(args->input)),
+        reinterpret_cast<float*>(static_cast<uintptr_t>(args->output)),
+        args->rows,args->cols,args->tensor_scale);
+    const auto error=cudaGetLastError();
+    return error==cudaSuccess?nvfp4_ok():nvfp4_error(AUGUR_CUDA_STATUS_SUBMISSION_FAILURE,error);
 }
 
 // Separately selected small-gate numerical ABI. Never used by the original

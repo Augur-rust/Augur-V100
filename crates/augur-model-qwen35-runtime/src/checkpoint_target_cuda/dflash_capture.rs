@@ -175,7 +175,10 @@ impl Ledger {
 
 /// Trusted same-process producer identity, NOT a digest of feature bytes.
 /// Private fields prevent callers from constructing a payload/owner substitute.
-#[cfg(feature = "qwen35-augur-dflash-bridge")]
+#[cfg(any(
+    feature = "qwen35-augur-dflash-bridge",
+    feature = "qwen35-nerkyor-dflash-research"
+))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct OwnerFeatureIdentity {
     source: [u8; 32],
@@ -185,21 +188,34 @@ pub(crate) struct OwnerFeatureIdentity {
     start: usize,
     rows: usize,
 }
-#[cfg(feature = "qwen35-augur-dflash-bridge")]
+#[cfg(any(
+    feature = "qwen35-augur-dflash-bridge",
+    feature = "qwen35-nerkyor-dflash-research"
+))]
 impl OwnerFeatureIdentity {
-    pub(crate) fn start(self) -> usize { self.start }
-    pub(crate) fn rows(self) -> usize { self.rows }
-    pub(crate) fn end(self) -> usize { self.start + self.rows }
+    pub(crate) fn start(self) -> usize {
+        self.start
+    }
+    pub(crate) fn rows(self) -> usize {
+        self.rows
+    }
+    pub(crate) fn end(self) -> usize {
+        self.start + self.rows
+    }
     pub(crate) fn capture_identity(self) -> (u64, u64, usize) {
         (self.epoch, self.revision, self.end())
     }
     pub(crate) fn validate_successor(self, next: Self) -> Result<()> {
-        if self.source != next.source || self.owner != next.owner
-            || next.epoch < self.epoch || next.revision < self.revision
+        if self.source != next.source
+            || self.owner != next.owner
+            || next.epoch < self.epoch
+            || next.revision < self.revision
             || (next.epoch == self.epoch && next.end() < self.end())
             || (next.epoch == self.epoch && next.revision == self.revision && next != self)
             || (next.epoch > self.epoch && next.revision <= self.revision)
-        { return Err("stale/foreign owner feature lease".into()); }
+        {
+            return Err("stale/foreign owner feature lease".into());
+        }
         Ok(())
     }
     /// Retained context rows are valid only within the same sealed owner epoch.
@@ -223,17 +239,30 @@ impl OwnerFeatureIdentity {
 }
 /// The mutable capture borrow prevents reset/overwrite while a consumer copies.
 /// Cross-stream users must complete their copy before releasing this lease.
-#[cfg(feature = "qwen35-augur-dflash-bridge")]
+#[cfg(any(
+    feature = "qwen35-augur-dflash-bridge",
+    feature = "qwen35-nerkyor-dflash-research"
+))]
 pub(crate) struct OwnerFeatureLease<'a> {
     capture: &'a mut Capture,
     identity: OwnerFeatureIdentity,
 }
-#[cfg(feature = "qwen35-augur-dflash-bridge")]
+#[cfg(any(
+    feature = "qwen35-augur-dflash-bridge",
+    feature = "qwen35-nerkyor-dflash-research"
+))]
 impl OwnerFeatureLease<'_> {
-    pub(crate) fn identity(&self) -> OwnerFeatureIdentity { self.identity }
-    pub(crate) fn stream(&self) -> &OwnedCudaStream { &self.capture.stream }
+    pub(crate) fn identity(&self) -> OwnerFeatureIdentity {
+        self.identity
+    }
+    pub(crate) fn stream(&self) -> &OwnedCudaStream {
+        &self.capture.stream
+    }
     pub(crate) fn view(&self) -> Result<augur_backend::CudaBufferView> {
-        Ok(self.capture.chronological.view(0, self.identity.rows * ROW_BYTES)?)
+        Ok(self
+            .capture
+            .chronological
+            .view(0, self.identity.rows * ROW_BYTES)?)
     }
 }
 
@@ -245,7 +274,11 @@ pub(super) struct Capture {
     ledger: Ledger,
 }
 impl Capture {
-    pub(super) fn new(stream: Rc<OwnedCudaStream>, capacity: usize, identity: [u8; 32]) -> Result<Self> {
+    pub(super) fn new(
+        stream: Rc<OwnedCudaStream>,
+        capacity: usize,
+        identity: [u8; 32],
+    ) -> Result<Self> {
         if identity == [0; 32] {
             return Err("missing target source identity".into());
         }
@@ -298,26 +331,51 @@ impl Capture {
     }
     /// Global-wide phase only: copy the intersection with the FINAL2048 rows,
     /// including an offset inside a chunk. Earlier rows never touch the ring.
-    pub(super) fn layer_window(&mut self,layer:usize,first:usize,rows:usize,
-        source:&OwnedCudaBuffer)->Result<()> {
-        let Some((_,end))=self.ledger.pending else {return Err("capture operation absent".into())};
-        let last=first.checked_add(rows).ok_or("capture range overflow")?;
-        if last>end {return Err("capture chunk exceeds operation".into());}
-        let begin=first.max(end.saturating_sub(HISTORY_ROWS));
-        if begin>=last {return Ok(());}
-        let Ok(slot)=DFLASH_TARGET_CAPTURE_LAYER_IDS.binary_search(&layer) else {return Ok(())};
-        let count=last-begin;let offset=begin-first;
-        self.ledger.check_layer(slot,begin,count)?;
-        source.view(0,rows*LAYER_BYTES)?;
-        for segment in ring_segments(begin,count)? {
+    pub(super) fn layer_window(
+        &mut self,
+        layer: usize,
+        first: usize,
+        rows: usize,
+        source: &OwnedCudaBuffer,
+    ) -> Result<()> {
+        let Some((_, end)) = self.ledger.pending else {
+            return Err("capture operation absent".into());
+        };
+        let last = first.checked_add(rows).ok_or("capture range overflow")?;
+        if last > end {
+            return Err("capture chunk exceeds operation".into());
+        }
+        let begin = first.max(end.saturating_sub(HISTORY_ROWS));
+        if begin >= last {
+            return Ok(());
+        }
+        let Ok(slot) = DFLASH_TARGET_CAPTURE_LAYER_IDS.binary_search(&layer) else {
+            return Ok(());
+        };
+        let count = last - begin;
+        let offset = begin - first;
+        self.ledger.check_layer(slot, begin, count)?;
+        source.view(0, rows * LAYER_BYTES)?;
+        for segment in ring_segments(begin, count)? {
             // SAFETY: same serial stream and retained parent/phase source;
             // offset is the validated final-window intersection, not row0.
-            unsafe {self.ring.copy_from_device_2d_async_unchecked(&self.stream,
-                segment.destination_row*ROW_BYTES+slot*LAYER_BYTES,ROW_BYTES,
-                source.view((offset+segment.source_row)*LAYER_BYTES,segment.rows*LAYER_BYTES)?,
-                LAYER_BYTES,LAYER_BYTES,segment.rows)?;}
+            unsafe {
+                self.ring.copy_from_device_2d_async_unchecked(
+                    &self.stream,
+                    segment.destination_row * ROW_BYTES + slot * LAYER_BYTES,
+                    ROW_BYTES,
+                    source.view(
+                        (offset + segment.source_row) * LAYER_BYTES,
+                        segment.rows * LAYER_BYTES,
+                    )?,
+                    LAYER_BYTES,
+                    LAYER_BYTES,
+                    segment.rows,
+                )?;
+            }
         }
-        self.ledger.mark_layer(slot,begin,count);Ok(())
+        self.ledger.mark_layer(slot, begin, count);
+        Ok(())
     }
     pub(super) fn commit(&mut self) -> Result<()> {
         self.ledger.commit()
@@ -329,7 +387,10 @@ impl Capture {
     /// chronological device range. Caller must retain this target until the
     /// draft constructor's synchronous D2D finishes. Never an owner-token hash
     /// masquerading as a digest of feature bytes.
-    #[cfg(feature = "qwen35-augur-dflash-bridge")]
+    #[cfg(any(
+        feature = "qwen35-augur-dflash-bridge",
+        feature = "qwen35-nerkyor-dflash-research"
+    ))]
     pub(super) fn snapshot_and_device_view(
         &self,
     ) -> Result<(FeatureSnapshot, augur_backend::CudaBufferView)> {
@@ -339,19 +400,36 @@ impl Capture {
             .view(0, snapshot.little_endian_f32.len())?;
         Ok((snapshot, view))
     }
-    #[cfg(feature = "qwen35-augur-dflash-bridge")]
+    #[cfg(any(
+        feature = "qwen35-augur-dflash-bridge",
+        feature = "qwen35-nerkyor-dflash-research"
+    ))]
     pub(super) fn committed_identity(&self) -> Result<(u64, u64, usize)> {
         self.ledger.range()?;
         Ok((self.ledger.epoch, self.ledger.generation, self.ledger.end))
     }
-    #[cfg(feature = "qwen35-augur-dflash-bridge")]
+    #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+    pub(super) fn source_identity_digest(&self) -> [u8; 32] {
+        self.source_identity
+    }
+    #[cfg(any(
+        feature = "qwen35-augur-dflash-bridge",
+        feature = "qwen35-nerkyor-dflash-research"
+    ))]
     pub(super) fn device_lease(&mut self) -> Result<OwnerFeatureLease<'_>> {
         let (start, rows) = self.copy_chronological()?;
         let identity = OwnerFeatureIdentity {
-            source: self.source_identity, owner: self.stream.owner_instance_key()?,
-            epoch: self.ledger.epoch, revision: self.ledger.generation, start, rows,
+            source: self.source_identity,
+            owner: self.stream.owner_instance_key()?,
+            epoch: self.ledger.epoch,
+            revision: self.ledger.generation,
+            start,
+            rows,
         };
-        Ok(OwnerFeatureLease { capture: self, identity })
+        Ok(OwnerFeatureLease {
+            capture: self,
+            identity,
+        })
     }
     fn copy_chronological(&self) -> Result<(usize, usize)> {
         let (first, rows) = self.ledger.range()?;
@@ -501,26 +579,45 @@ mod tests;
 #[cfg(all(test, feature = "qwen35-augur-dflash-bridge"))]
 mod resident_tests;
 
-#[cfg(all(windows, feature="qwen35-augur-http"))]
+#[cfg(all(windows, feature = "qwen35-augur-http"))]
 impl Capture {
-    pub(super) fn checkpoint_ring(&self,consumed:usize)->Result<(&OwnedCudaBuffer,usize)> {
-        if consumed==0 || consumed>=self.ledger.capacity {return Err("feature checkpoint extent".into());}
-        Ok((&self.ring,consumed.min(HISTORY_ROWS)*ROW_BYTES))
+    pub(super) fn checkpoint_ring(&self, consumed: usize) -> Result<(&OwnedCudaBuffer, usize)> {
+        if consumed == 0 || consumed >= self.ledger.capacity {
+            return Err("feature checkpoint extent".into());
+        }
+        Ok((&self.ring, consumed.min(HISTORY_ROWS) * ROW_BYTES))
     }
-    pub(super) fn checkpoint_check(&self,consumed:usize)->Result<()> {
-        let (first,rows)=self.ledger.range()?;
-        if first+rows!=consumed {return Err("feature checkpoint cursor".into());}Ok(())
+    pub(super) fn checkpoint_check(&self, consumed: usize) -> Result<()> {
+        let (first, rows) = self.ledger.range()?;
+        if first + rows != consumed {
+            return Err("feature checkpoint cursor".into());
+        }
+        Ok(())
     }
-    pub(super) fn checkpoint_resume(&mut self,consumed:usize)->Result<()> {
-        if self.ledger.pending.is_some() || self.ledger.end!=0 || consumed==0 || consumed>=self.ledger.capacity {
-            return Err("feature checkpoint requires a reset/new local epoch".into());}
+    pub(super) fn checkpoint_resume(&mut self, consumed: usize) -> Result<()> {
+        if self.ledger.pending.is_some()
+            || self.ledger.end != 0
+            || consumed == 0
+            || consumed >= self.ledger.capacity
+        {
+            return Err("feature checkpoint requires a reset/new local epoch".into());
+        }
         // Old owner epochs, pointers, proposal generations and GPU handles never
         // cross a checkpoint. Rebuild the initialized-window ledger in this owner.
-        let generation=self.ledger.generation.checked_add(1).ok_or("feature generation overflow")?;
-        self.ledger.positions.fill(None);self.ledger.masks.fill(0);
+        let generation = self
+            .ledger
+            .generation
+            .checked_add(1)
+            .ok_or("feature generation overflow")?;
+        self.ledger.positions.fill(None);
+        self.ledger.masks.fill(0);
         for pos in consumed.saturating_sub(HISTORY_ROWS)..consumed {
-            self.ledger.positions[pos%HISTORY_ROWS]=Some(pos);self.ledger.masks[pos%HISTORY_ROWS]=ALL_LAYERS;
+            self.ledger.positions[pos % HISTORY_ROWS] = Some(pos);
+            self.ledger.masks[pos % HISTORY_ROWS] = ALL_LAYERS;
         }
-        self.ledger.end=consumed;self.ledger.generation=generation;self.ledger.range()?;Ok(())
+        self.ledger.end = consumed;
+        self.ledger.generation = generation;
+        self.ledger.range()?;
+        Ok(())
     }
 }

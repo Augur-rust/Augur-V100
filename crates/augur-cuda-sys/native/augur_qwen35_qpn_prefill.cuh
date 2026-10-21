@@ -13,10 +13,11 @@ bool qpn_prefill_valid(int32_t ordinal,augur_cuda_stream_t stream,
     const augur_cuda_qwen35_qpn_prefill_args_v1* a,bool inspect_device) {
     if(!plan||!plan->handle||!stream||!stream->stream||plan->owner!=stream
        ||plan->ordinal!=ordinal||stream->ordinal!=ordinal||!a
-       ||a->abi_version!=1||a->struct_size!=sizeof(*a)||(a->numerical_profile<1||a->numerical_profile>8)
+       ||a->abi_version!=1||a->struct_size!=sizeof(*a)||(a->numerical_profile<1||a->numerical_profile>9)
        ||!a->rows||a->rows%32||!a->cols||a->cols%64
        ||a->rows>INT32_MAX||a->cols>INT32_MAX||!a->tokens||a->tokens>plan->snapshot.max_tokens
-       ||(a->numerical_profile==8?a->split_k!=augur_qwen35_qpn_shape_split_k_v1(a->rows,a->cols):(a->split_k!=8&&a->split_k!=16))||!std::isfinite(a->tensor_scale)
+       ||(a->numerical_profile==8?a->split_k!=augur_qwen35_qpn_shape_split_k_v1(a->rows,a->cols)
+          :a->numerical_profile==9?(a->split_k!=8):(a->split_k!=8&&a->split_k!=16))||!std::isfinite(a->tensor_scale)
        ||a->tensor_scale<0x1p-32f||a->tensor_scale>24.0f) return false;
     const uint64_t e=uint64_t(a->rows)*a->cols,x=uint64_t(a->tokens)*a->cols;
     if(e>UINT32_MAX||x>UINT32_MAX||a->weight_bytes!=e/64*36||a->input_bytes!=x*4

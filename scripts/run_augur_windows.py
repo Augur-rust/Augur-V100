@@ -61,7 +61,9 @@ def gate_identity(path):
     return dict(path=str(path), sha256=digest)
 
 
-def configure(selector_gate_file=None, vision_residency="on_demand"):
+def configure(selector_gate_file=None, vision_residency="on_demand", sampling_seed=0):
+    if type(sampling_seed) is not int or not 0 <= sampling_seed <= (1 << 64) - 1:
+        raise ValueError("sampling seed must be an unsigned 64-bit integer")
     if vision_residency not in ("auto", "on_demand"):
         raise ValueError("vision residency must be auto or on_demand")
     from augur_reasoning import GLOBAL_GATE_POLICY
@@ -71,6 +73,7 @@ def configure(selector_gate_file=None, vision_residency="on_demand"):
         if key.startswith('AUGUR_'):
             del os.environ[key]
     os.environ.update(SETTINGS)
+    os.environ["AUGUR_SAMPLING_SEED"] = str(sampling_seed)
     os.environ["AUGUR_VISION_RESIDENCY"] = vision_residency
     os.environ.update(AUGUR_DFLASH_ENGLISH_GATE=GLOBAL_GATE_POLICY,
         AUGUR_DFLASH_SELECTOR_GATE_ACCUMULATION='fp32',
@@ -88,6 +91,8 @@ def main(argv=None):
     parser.add_argument('--api-key-file', type=Path)
     parser.add_argument('--selector-gate-file', type=Path,
         help='optional legacy SHA256-pinned gate; default is the Rust-quantized embedded FP32 gate0.45')
+    parser.add_argument('--sampling-seed', type=int, default=0,
+        help='immutable native target/proposal/verification seed for this service (default 0)')
     parser.add_argument('--live-file', type=Path,
         help='optional private telemetry output consumed by augur_monitor.py')
     parser.add_argument("--vision-residency", choices=("auto", "on_demand"), default="on_demand",
@@ -97,7 +102,7 @@ def main(argv=None):
         parser.print_help()
         import augur_product
         return augur_product.main(remaining)
-    configure(options.selector_gate_file, options.vision_residency)
+    configure(options.selector_gate_file, options.vision_residency, options.sampling_seed)
     if options.api_key_file:
         key = options.api_key_file.read_text(encoding='ascii').strip()
         if len(key) < 32 or any(c.isspace() for c in key):

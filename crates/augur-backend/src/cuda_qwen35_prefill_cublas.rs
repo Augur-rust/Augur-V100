@@ -2143,6 +2143,27 @@ pub struct CudaQwen35PrefillFullAttentionViewsV1 {
     pub gated: CudaF32View,
 }
 
+/// Explicit canonical-score research execution; no implicit global switch.
+pub struct CudaNerkyorCanonicalF32KvAttentionV1 { inner: CudaQwen35PrefillFullAttentionV1 }
+impl CudaNerkyorCanonicalF32KvAttentionV1 {
+    pub fn submit(&self, stream:&OwnedCudaStream)->Result<(),CudaRuntimeError> {
+        self.inner.require_stream(stream)?;
+        // SAFETY: immutable checked descriptor; caller retains every buffer and
+        // one stream owner through completion, as for the existing prefill ABI.
+        let result=unsafe {augur_cuda_sys::augur_cuda_nerkyor_prefill_full_attention_canonical_submit_v1(
+            self.inner.device_ordinal,stream.raw()?,&self.inner.raw)};
+        CudaRuntimeError::from_result("nerkyor_canonical_f32_kv_attention",result)
+    }
+}
+impl CudaQwen35PrefillFullAttentionV1 {
+    pub fn for_nerkyor_canonical_f32_kv(self)->Result<CudaNerkyorCanonicalF32KvAttentionV1,CudaRuntimeError> {
+        if self.raw.tokens>8 || !cfg!(feature="qwen35-warp-full-attention") || !cfg!(feature="qwen35-target-split-rope") {
+            return Err(validation(CudaRuntimeErrorKind::InvalidDimensions));
+        }
+        Ok(CudaNerkyorCanonicalF32KvAttentionV1{inner:self})
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct CudaQwen35PrefillFullAttentionV1 {
     raw: AugurCudaQwen35PrefillFullAttentionArgsV1,

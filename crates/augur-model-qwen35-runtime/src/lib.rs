@@ -326,3 +326,8 @@ pub use real_target_output_head_cuda::{
 mod vision_cuda;
 #[cfg(feature = "qwen35-augur-vision")]
 pub use vision_cuda::{Qwen35VisionCudaEncoder, Qwen35VisionCudaOutput, Qwen35VisionHostWeights};
+
+// The new model is an explicitly bounded research adapter, never a QUASAR default.
+pub mod nerkyor_session_manifest;
+#[cfg(feature = "qwen35-nerkyor-session-research")]
+pub mod nerkyor_session_cuda;

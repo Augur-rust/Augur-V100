@@ -110,7 +110,7 @@ pub(crate) fn verify(ids:&[u32],logits:&[f32],proposal:&Proposal,row:usize,draft
     if !(1..8).contains(&row) || proposal.start.checked_add(row)!=Some(position) {return Err("foreign probability position");}
     let probabilities=target(ids,logits)?;
     let id=verify_sparse(ids,&probabilities,&proposal.ids[row*16..(row+1)*16],&proposal.q[row*16..(row+1)*16],draft,
-        augur_sampling::uniform(ACCEPT,position),augur_sampling::uniform(CORRECTION,position))?;
+        augur_sampling::process_uniform(ACCEPT,position)?,augur_sampling::process_uniform(CORRECTION,position)?)?;
     Ok(Selection{id,top1:ids[0]})
 }
 /// Block verification (Sun et al., ICLR 2025, Algorithm 2) is opt-in; token verification stays default.
@@ -189,9 +189,10 @@ pub(crate) fn verify_block(target_rows:&[(&[u32],&[f32])],proposal:&Proposal,pat
     let drafts=&path[1..];
     // Coins reuse the ACCEPT domain at each draft's absolute position. The single emitted draw uses
     // CORRECTION (residual) or BONUS (full block) at its absolute position, like token verification.
-    let accept_u:Vec<f64>=(1..width).map(|r|augur_sampling::uniform(ACCEPT,proposal.start+r)).collect();
+    let seed=augur_sampling::process_seed()?;
+    let accept_u:Vec<f64>=(1..width).map(|r|augur_sampling::uniform_seeded(seed,ACCEPT,proposal.start+r)).collect();
     let start=proposal.start;let gamma=width-1;
-    let (tau,next)=block_decide(&rows,&q,drafts,&accept_u,|tau|augur_sampling::uniform(if tau==gamma {BONUS} else {CORRECTION},start+tau+1))?;
+    let (tau,next)=block_decide(&rows,&q,drafts,&accept_u,|tau|augur_sampling::uniform_seeded(seed,if tau==gamma {BONUS} else {CORRECTION},start+tau+1))?;
     let out=(0..width).map(|r|Selection{id:if r<tau {drafts[r]} else {next},top1:target_rows[r].0[0]}).collect();
     Ok((tau,out))
 }

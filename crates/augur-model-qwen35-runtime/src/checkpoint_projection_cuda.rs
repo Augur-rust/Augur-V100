@@ -19,12 +19,14 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[cfg(feature = "qwen35-augur-http")]
 pub(crate) mod startup_bf16;
+#[cfg(feature = "qwen35-nerkyor-dflash-research")]
+pub(crate) mod nerkyor_gate;
 #[cfg(feature = "qwen35-prefill-cublas")]
 pub(crate) mod startup_qpn;
-#[cfg(all(feature="qwen35-prefill-cublas",feature="qwen35-augur-dflash-bridge"))]
+#[cfg(all(feature="qwen35-prefill-cublas",any(feature="qwen35-augur-dflash-bridge",feature="qwen35-nerkyor-dflash-research")))]
 mod dflash_head;
-#[cfg(all(feature="qwen35-prefill-cublas",feature="qwen35-augur-dflash-bridge"))]
-pub(crate) use dflash_head::CheckpointSharedBf16HeadRows;
+#[cfg(all(feature="qwen35-prefill-cublas",any(feature="qwen35-augur-dflash-bridge",feature="qwen35-nerkyor-dflash-research")))]
+pub(crate) use dflash_head::{CheckpointSharedBf16HeadRows, shared_head_kernel};
 
 /// Scan every BF16 word using a branch-free reduction, permitting LLVM SIMD.
 /// Exact same exponent-bit predicate: reject all NaNs/infinities, keep zeros,
@@ -37,10 +39,39 @@ pub(crate) fn bf16_payload_is_finite(bytes: &[u8]) -> bool {
 }
 
 
+#[cfg(test)]
+thread_local! {
+    static PROJECTION_SUBMISSIONS: std::cell::Cell<[u64; 4]> = const { std::cell::Cell::new([0; 4]) };
+}
+/// Successful host submissions; these are not a substitute for numerical checks.
+#[cfg(test)]
+pub(crate) fn projection_submission_counts() -> [u64; 4] {
+    PROJECTION_SUBMISSIONS.with(|v| v.get())
+}
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum CheckpointProjectionPolicy {
     #[default]
     OriginalF32,
+    /// Isolated new-model experiment, never a production/default policy.
+    #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+    NerkyorBf16GateF32CtaResearch,
+    /// Isolated ModelOptW4A16 large-matrix QPN experiment; F32 gates and KV.
+    #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+    NerkyorQpnWorkspaceShapeF64Research,
+    /// Isolate QPN FFN error propagation; attention/GDN projections stay source-F32.
+    #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+    NerkyorQpnFfnShapeF64Research,
+    /// Lossless QPN layout with the original F32 pairs and source F64 tree.
+    #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+    NerkyorQpnSourcePairResearch,
+    /// Same source F32 pairs with a re-associated 16/32-stream F64 sum.
+    /// A separate numerical identity; it never inherits source-pair evidence.
+    #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+    NerkyorQpnSourceReassocResearch,
+    /// Source-pair-preserving alternative after the QPN KV contract failure.
+    #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+    NerkyorSourceSplit8F64Research,
     NvidiaFp8WarpF32,
     QpnFfnF16,
     NvidiaFp8WarpQpnFfnF16,
@@ -60,6 +91,10 @@ pub enum CheckpointProjectionPolicy {
     /// Same per-row SplitK16 math; pair schedules are separate execution IDs.
     AugurQpnAllWorkspaceShapeSmallPairF64,
     AugurQpnAllWorkspaceShapeSmallPairPrefetchF64,
+    /// B1 packed hi/lo rows with a depth-4 prefetch and a single whole-slice
+    /// F32 widening. Distinct from the F64 CTA-fold profiles above because the
+    /// reduction tree differs, so their ledgers do not describe this one.
+    AugurQpnAllWorkspacePackedF32,
 }
 impl CheckpointProjectionPolicy {
     pub fn label(self) -> &'static str {
@@ -68,6 +103,7 @@ impl CheckpointProjectionPolicy {
             Self::AugurQpnAllWorkspaceShapeSmallPairPrefetchF64 => "checkpoint_quasar_qpn_all_workspace_shape_small_pair_prefetch_f64_v1",
             Self::AugurQpnAllWorkspaceShapeSmallF64 => "checkpoint_quasar_qpn_all_workspace_shape_small_f64_v1",
             Self::AugurQpnAllWorkspaceShapeF64 => "checkpoint_quasar_qpn_all_workspace_shape_f64_v1",
+            Self::AugurQpnAllWorkspacePackedF32 => "checkpoint_quasar_qpn_all_workspace_packed_f32_prefetch_v1",
             Self::AugurQpnAllWorkspaceCtaFoldF64 => "checkpoint_quasar_qpn_all_workspace_cta_fold_f64_v1",
             Self::AugurQpnAllWorkspaceF64 => "checkpoint_quasar_qpn_all_workspace_f64_v2",
             Self::AugurQpnAllRefinedFastF64 => "checkpoint_quasar_qpn_all_refined_hi16_f64_v2",
@@ -75,6 +111,18 @@ impl CheckpointProjectionPolicy {
             Self::AugurQpnAllResidualF32 => "checkpoint_quasar_qpn_all_residual_f32_v2",
             Self::AugurQpnAllF16PostScale => "checkpoint_quasar_qpn_all_f16_postscale_v1",
             Self::OriginalF32 => "checkpoint_original_f32_scalar_v1",
+            #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+            Self::NerkyorBf16GateF32CtaResearch => "checkpoint_nerkyor_bf16_gate_f32_cta_research_v1",
+            #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+            Self::NerkyorQpnWorkspaceShapeF64Research => "checkpoint_nerkyor_modelopt_w4a16_qpn_shape_f64_gate_f32_research_v1",
+            #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+            Self::NerkyorQpnFfnShapeF64Research => "checkpoint_nerkyor_modelopt_w4a16_qpn_ffn_shape_f64_gate_f32_research_v1",
+            #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+            Self::NerkyorQpnSourcePairResearch => "checkpoint_nerkyor_qpn_source_pair_exact_f64_gate_f32_research_v1",
+            #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+            Self::NerkyorQpnSourceReassocResearch => "checkpoint_nerkyor_qpn_source_pair_reassoc_f64_gate_f32_research_v1",
+            #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+            Self::NerkyorSourceSplit8F64Research => "checkpoint_nerkyor_source_f32_pair_split8_f64_gate_f32_research_v1",
             Self::NvidiaFp8WarpF32 => "checkpoint_nvidia_fp8_warp_f32_v1",
             Self::QpnFfnF16 => "checkpoint_qpn_ffn_f16_v1",
             Self::NvidiaFp8WarpQpnFfnF16 => "checkpoint_nvidia_fp8_warp_qpn_ffn_f16_v1",
@@ -84,6 +132,32 @@ impl CheckpointProjectionPolicy {
                 "checkpoint_nvidia_fp8_warp_qpn_ffn_f16_postscale_v1"
             }
         }
+    }
+    pub fn uses_nerkyor_qpn_source_pair(self) -> bool {
+        #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+        if matches!(self, Self::NerkyorQpnSourcePairResearch | Self::NerkyorQpnSourceReassocResearch) { return true; }
+        false
+    }
+    pub fn uses_nerkyor_qpn_source_reassoc(self) -> bool {
+        #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+        if self == Self::NerkyorQpnSourceReassocResearch { return true; }
+        false
+    }
+    pub fn uses_nerkyor_source_split8_research(self) -> bool {
+        #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+        if self == Self::NerkyorSourceSplit8F64Research { return true; }
+        false
+    }
+    pub fn uses_nerkyor_qpn_research(self) -> bool {
+        #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+        if matches!(self, Self::NerkyorQpnWorkspaceShapeF64Research | Self::NerkyorQpnFfnShapeF64Research) { return true; }
+        false
+    }
+    pub fn uses_nerkyor_gate_f32_cta_research(self) -> bool {
+        if self.uses_nerkyor_qpn_research() || self.uses_nerkyor_source_split8_research() || self.uses_nerkyor_qpn_source_pair() { return true; }
+        #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+        if self == Self::NerkyorBf16GateF32CtaResearch { return true; }
+        false
     }
     pub fn uses_fp8_warp(self) -> bool {
         matches!(
@@ -95,6 +169,10 @@ impl CheckpointProjectionPolicy {
         )
     }
     pub fn uses_qpn_projections(self) -> bool {
+        if self.uses_nerkyor_qpn_source_pair() { return true; }
+        #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+        if self == Self::NerkyorQpnFfnShapeF64Research { return false; }
+        if self.uses_nerkyor_qpn_research() { return true; }
         matches!(
             self,
             Self::AugurQpnAllF16PostScale
@@ -103,9 +181,11 @@ impl CheckpointProjectionPolicy {
                 | Self::AugurQpnAllRefinedFastF64
                 | Self::AugurQpnAllWorkspaceF64
                 | Self::AugurQpnAllWorkspaceCtaFoldF64 | Self::AugurQpnAllWorkspaceShapeF64 | Self::AugurQpnAllWorkspaceShapeSmallF64 | Self::AugurQpnAllWorkspaceShapeSmallPairF64 | Self::AugurQpnAllWorkspaceShapeSmallPairPrefetchF64
+                | Self::AugurQpnAllWorkspacePackedF32
         )
     }
     pub fn qpn_residual(self) -> bool {
+        if self.uses_nerkyor_qpn_research() { return true; }
         matches!(
             self,
             Self::AugurQpnAllResidualF32
@@ -113,13 +193,21 @@ impl CheckpointProjectionPolicy {
                 | Self::AugurQpnAllRefinedFastF64
                 | Self::AugurQpnAllWorkspaceF64
                 | Self::AugurQpnAllWorkspaceCtaFoldF64 | Self::AugurQpnAllWorkspaceShapeF64 | Self::AugurQpnAllWorkspaceShapeSmallF64 | Self::AugurQpnAllWorkspaceShapeSmallPairF64 | Self::AugurQpnAllWorkspaceShapeSmallPairPrefetchF64
+                | Self::AugurQpnAllWorkspacePackedF32
         )
     }
     pub fn qpn_workspace(self) -> bool {
-        matches!(self, Self::AugurQpnAllWorkspaceF64 | Self::AugurQpnAllWorkspaceCtaFoldF64 | Self::AugurQpnAllWorkspaceShapeF64 | Self::AugurQpnAllWorkspaceShapeSmallF64 | Self::AugurQpnAllWorkspaceShapeSmallPairF64 | Self::AugurQpnAllWorkspaceShapeSmallPairPrefetchF64)
+        if self.uses_nerkyor_qpn_research() { return true; }
+        matches!(self, Self::AugurQpnAllWorkspaceF64 | Self::AugurQpnAllWorkspaceCtaFoldF64 | Self::AugurQpnAllWorkspaceShapeF64 | Self::AugurQpnAllWorkspaceShapeSmallF64 | Self::AugurQpnAllWorkspaceShapeSmallPairF64 | Self::AugurQpnAllWorkspaceShapeSmallPairPrefetchF64 | Self::AugurQpnAllWorkspacePackedF32)
     }
     pub fn qpn_shape_split(self) -> bool {
-        matches!(self, Self::AugurQpnAllWorkspaceShapeF64 | Self::AugurQpnAllWorkspaceShapeSmallF64 | Self::AugurQpnAllWorkspaceShapeSmallPairF64 | Self::AugurQpnAllWorkspaceShapeSmallPairPrefetchF64)
+        if self.uses_nerkyor_qpn_research() { return true; }
+        matches!(self, Self::AugurQpnAllWorkspaceShapeF64 | Self::AugurQpnAllWorkspaceShapeSmallF64 | Self::AugurQpnAllWorkspaceShapeSmallPairF64 | Self::AugurQpnAllWorkspaceShapeSmallPairPrefetchF64 | Self::AugurQpnAllWorkspacePackedF32)
+    }
+    /// B1 packed-row prefetch profile. Deliberately NOT part of
+    /// qpn_shape_split: its K partition is fixed at8 inside the kernel.
+    pub fn qpn_packed_f32_prefetch(self) -> bool {
+        self == Self::AugurQpnAllWorkspacePackedF32
     }
     pub fn uses_small_gate_split16(self) -> bool {
         matches!(self, Self::AugurQpnAllWorkspaceShapeSmallF64 | Self::AugurQpnAllWorkspaceShapeSmallPairF64 | Self::AugurQpnAllWorkspaceShapeSmallPairPrefetchF64)
@@ -139,6 +227,7 @@ impl CheckpointProjectionPolicy {
         self.uses_qpn_projections() && rows > 0 && rows % 32 == 0 && cols > 0 && cols % 64 == 0
     }
     pub fn uses_qpn_ffn(self) -> bool {
+        if self.uses_nerkyor_qpn_research() { return true; }
         matches!(
             self,
             Self::QpnFfnF16
@@ -152,6 +241,7 @@ impl CheckpointProjectionPolicy {
                 | Self::AugurQpnAllRefinedFastF64
                 | Self::AugurQpnAllWorkspaceF64
                 | Self::AugurQpnAllWorkspaceCtaFoldF64 | Self::AugurQpnAllWorkspaceShapeF64 | Self::AugurQpnAllWorkspaceShapeSmallF64 | Self::AugurQpnAllWorkspaceShapeSmallPairF64 | Self::AugurQpnAllWorkspaceShapeSmallPairPrefetchF64
+                | Self::AugurQpnAllWorkspacePackedF32
         )
     }
     pub fn qpn_ffn_layer(self, layer: usize) -> bool {
@@ -160,6 +250,7 @@ impl CheckpointProjectionPolicy {
             && (self != Self::NvidiaFp8WarpQpnFfnF16Tail8 || layer < 56)
     }
     pub fn qpn_postscale(self) -> bool {
+        if self.uses_nerkyor_qpn_research() { return true; }
         matches!(
             self,
             Self::QpnFfnF16PostScale
@@ -170,6 +261,7 @@ impl CheckpointProjectionPolicy {
                 | Self::AugurQpnAllRefinedFastF64
                 | Self::AugurQpnAllWorkspaceF64
                 | Self::AugurQpnAllWorkspaceCtaFoldF64 | Self::AugurQpnAllWorkspaceShapeF64 | Self::AugurQpnAllWorkspaceShapeSmallF64 | Self::AugurQpnAllWorkspaceShapeSmallPairF64 | Self::AugurQpnAllWorkspaceShapeSmallPairPrefetchF64
+                | Self::AugurQpnAllWorkspacePackedF32
         )
     }
 }
@@ -206,6 +298,8 @@ pub struct CheckpointScalarCudaWeight {
 enum Operation {
     #[cfg(feature = "qwen35-prefill-cublas")]
     Qpn(augur_backend::cuda_qwen35_prefill_cublas::CudaQwen35QpnRetainedProjectionV1),
+    #[cfg(feature = "qwen35-prefill-cublas")]
+    QpnSourcePair(augur_backend::cuda_qwen35_qpn::source_pair::CudaQpnSourcePairProjection),
     Nvfp4(CudaNvfp4Sm70F32MatvecArgsV1),
     Fp8(CudaF8E4M3RowScaleF32MatvecArgsV1),
     Fp8Warp(CudaF8E4M3F32MatvecArgsV1),
@@ -341,7 +435,8 @@ impl CheckpointScalarCudaWeight {
                         weight_global_scale,
                         ..
                     } => 1.0 / weight_global_scale,
-                    CheckpointNvfp4Scale::ModelOpt { weight_scale_2, .. } => weight_scale_2,
+                    CheckpointNvfp4Scale::ModelOpt { weight_scale_2, .. }
+                    | CheckpointNvfp4Scale::ModelOptW4A16 { weight_scale_2 } => weight_scale_2,
                 };
                 if !multiplier.is_finite() || multiplier <= 0.0 {
                     return Err("NVFP4 execution scalar out of F32 range".into());
@@ -471,11 +566,30 @@ impl CheckpointScalarCudaWeight {
         let (n, k) = (self.spec.rows, self.spec.cols);
         let operation = match &self.storage {
             #[cfg(feature = "qwen35-prefill-cublas")]
+            Storage::Qpn { weight, .. } if self.policy.uses_nerkyor_qpn_source_pair() => Operation::QpnSourcePair(
+                augur_backend::cuda_qwen35_qpn::source_pair::CudaQpnSourcePairProjection::bind(
+                    Rc::clone(&self.stream), Rc::clone(weight), Rc::clone(&input), input_offset,
+                    Rc::clone(&output), output_offset,
+                    // Prefetch issue keeps SourceExact's chains and tree
+                    // bit for bit; it only needs a 16-byte-aligned input row.
+                    if self.policy.uses_nerkyor_qpn_source_reassoc() {
+                        // No unaligned fallback: falling back would silently
+                        // change this policy's arithmetic identity.
+                        if input_offset % 16 != 0 { return Err("re-associated source-pair needs a 16-byte input row".into()); }
+                        augur_backend::cuda_qwen35_qpn::source_pair::Schedule::SourceF64Reassoc
+                    } else if input_offset % 16 == 0 {
+                        augur_backend::cuda_qwen35_qpn::source_pair::Schedule::SourcePrefetch
+                    } else {
+                        augur_backend::cuda_qwen35_qpn::source_pair::Schedule::SourceExact
+                    })?),
+            #[cfg(feature = "qwen35-prefill-cublas")]
             Storage::Qpn { weight, plan, .. } => Operation::Qpn(
                 augur_backend::cuda_qwen35_prefill_cublas::CudaQwen35QpnRetainedProjectionV1::bind(
                     Rc::clone(plan), Rc::clone(&self.stream), Rc::clone(weight),
                     Rc::clone(&input), input_offset, Rc::clone(&output), output_offset, 1)?
-                .with_scale_placement(if self.policy.qpn_shape_split() {
+                .with_scale_placement(if self.policy.qpn_packed_f32_prefetch() {
+                    augur_backend::cuda_qwen35_prefill_cublas::CudaQwen35QpnScalePlacement::ResidualPackedF32Prefetch
+                } else if self.policy.qpn_shape_split() {
                     augur_backend::cuda_qwen35_prefill_cublas::CudaQwen35QpnScalePlacement::ResidualWorkspaceShapeF64
                 } else if self.policy == CheckpointProjectionPolicy::AugurQpnAllWorkspaceCtaFoldF64 {
                     augur_backend::cuda_qwen35_prefill_cublas::CudaQwen35QpnScalePlacement::ResidualWorkspaceCtaFoldF64
@@ -626,7 +740,7 @@ impl CheckpointScalarCudaProjection {
 
     /// Rebind only the retained authentic BF16 vocabulary head, on the exact
     /// same stream owner. No upload, quantization or additional normalization.
-    #[cfg(feature = "qwen35-augur-dflash-bridge")]
+    #[cfg(any(feature = "qwen35-augur-dflash-bridge", feature = "qwen35-nerkyor-dflash-research"))]
     pub(crate) fn rebind_shared_bf16_head(
         &self, stream: &Rc<OwnedCudaStream>, input: Rc<OwnedCudaBuffer>,
         input_offset: usize, output: Rc<OwnedCudaBuffer>, output_offset: usize,
@@ -704,8 +818,12 @@ impl CheckpointScalarCudaProjection {
         match &self.operation {
             #[cfg(feature = "qwen35-prefill-cublas")]
             Operation::Qpn(op) => op.submit_for_plan()?,
+            #[cfg(feature = "qwen35-prefill-cublas")]
+            Operation::QpnSourcePair(op) => op.submit()?,
             Operation::Nvfp4(op) => {
-                if self.weight.policy.admits_small_gate_split16(self.weight.spec.rows, self.weight.spec.cols) {
+                if self.weight.policy.uses_nerkyor_source_split8_research() {
+                    op.submit_large_split8_for_plan(stream)?;
+                } else if self.weight.policy.admits_small_gate_split16(self.weight.spec.rows, self.weight.spec.cols) {
                     op.submit_small_gate_split16_for_plan(stream)?;
                 } else {
                     op.submit_for_plan(stream)?;
@@ -714,6 +832,20 @@ impl CheckpointScalarCudaProjection {
             Operation::Fp8(op) => op.submit_for_plan(stream)?,
             Operation::Fp8Warp(op) => op.submit_warp_fp32_for_plan(stream)?,
             Operation::Bf16(op) => op.submit_for_plan(stream)?,
+        }
+        #[cfg(test)]
+        {
+            let slot = match &self.operation {
+                #[cfg(feature = "qwen35-prefill-cublas")]
+                Operation::Qpn(_) => Some(0),
+                #[cfg(feature = "qwen35-prefill-cublas")]
+                Operation::QpnSourcePair(_) => Some(1),
+                Operation::Nvfp4(_) => Some(if self.weight.policy.uses_nerkyor_source_split8_research() {3} else {2}),
+                _ => None,
+            };
+            if let Some(i) = slot {
+                PROJECTION_SUBMISSIONS.with(|v| {let mut counts=v.get();counts[i]+=1;v.set(counts);});
+            }
         }
         Ok(())
     }
@@ -1116,3 +1248,6 @@ mod bf16_startup_scan_tests {
         assert!(!bf16_payload_is_finite(&[0,0,0]));
     }
 }
+
+#[cfg(all(test, feature = "qwen35-nerkyor-dflash-research", feature = "qwen35-prefill-cublas"))]
+mod source_pair_gpu_tests;

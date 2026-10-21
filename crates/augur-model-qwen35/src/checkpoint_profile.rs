@@ -7,6 +7,8 @@ pub enum Qwen35CheckpointProfile {
     OriginalMixed,
     QuasarNvfp4,
     NvidiaMixed,
+    /// ModelOpt weight-only NVFP4, BF16 GDN a/b gates and BF16 output head.
+    NerkyorW4a16,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -48,7 +50,10 @@ pub fn checkpoint_linear_specs(profile: Qwen35CheckpointProfile) -> Vec<Checkpoi
         ] {
             add(&format!("mlp.{suffix}"), rows, cols, Nvfp4);
         }
-        let attention = if profile == Qwen35CheckpointProfile::QuasarNvfp4 {
+        let attention = if matches!(
+            profile,
+            Qwen35CheckpointProfile::QuasarNvfp4 | Qwen35CheckpointProfile::NerkyorW4a16
+        ) {
             Nvfp4
         } else {
             Fp8
@@ -83,7 +88,10 @@ pub fn checkpoint_linear_specs(profile: Qwen35CheckpointProfile) -> Vec<Checkpoi
         name: "lm_head".into(),
         rows: 248320,
         cols: 5120,
-        storage: if profile == Qwen35CheckpointProfile::QuasarNvfp4 {
+        storage: if matches!(
+            profile,
+            Qwen35CheckpointProfile::QuasarNvfp4 | Qwen35CheckpointProfile::NerkyorW4a16
+        ) {
             Bf16
         } else {
             Nvfp4
@@ -101,6 +109,7 @@ mod tests {
         for (profile, counts) in [
             (Qwen35CheckpointProfile::QuasarNvfp4, [496, 0, 1]),
             (Qwen35CheckpointProfile::NvidiaMixed, [193, 208, 96]),
+            (Qwen35CheckpointProfile::NerkyorW4a16, [400, 0, 97]),
         ] {
             let specs = checkpoint_linear_specs(profile);
             assert_eq!(specs.len(), 497);

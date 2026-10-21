@@ -77,6 +77,21 @@ class WindowsPreset(unittest.TestCase):
         product.main.assert_called_once_with(['--build','build with space'])
         tracker.closed.set.assert_called_once_with()
 
+    def test_sampling_seed_is_explicit_validated_and_survives_environment_reset(self):
+        with patch.dict(os.environ,{'AUGUR_SAMPLING_SEED':'999'},clear=True):
+            W.configure(sampling_seed=2)
+            self.assertEqual(os.environ['AUGUR_SAMPLING_SEED'],'2')
+            for value in (-1,1<<64,True,1.0):
+                with self.assertRaises(ValueError):W.configure(sampling_seed=value)
+                self.assertEqual(os.environ['AUGUR_SAMPLING_SEED'],'2')
+            W.configure()
+            self.assertEqual(os.environ['AUGUR_SAMPLING_SEED'],'0')
+        product=SimpleNamespace(main=Mock(return_value=0))
+        with patch.dict('sys.modules',augur_product=product),patch.object(W,'configure') as configure:
+            W.main(['--sampling-seed','2','--build','build'])
+        configure.assert_called_once_with(None,'on_demand',2)
+        product.main.assert_called_once_with(['--build','build'])
+
     def test_vision_residency_defaults_and_validation(self):
         with patch.dict(os.environ, {"AUGUR_OLD": "preserve"}, clear=True):
             with self.assertRaises(ValueError): W.configure(vision_residency="forever")

@@ -35,7 +35,7 @@ fn full_state(owner:&mut AugurCudaSession,tokens:&[u32])->Result<Option<String>>
         profile:DFLASH_B8_PROFILE.into(),
         draft_config_sha256:std::env::var("AUGUR_DRAFT_CONFIG_SHA256")?,
         draft_weights_sha256:std::env::var("AUGUR_DRAFT_SHA256")?,
-        decode_attention:std::env::var("AUGUR_HTTP_DECODE_ATTENTION")?,sampling:crate::augur_sampling::GREEDY.into(),
+        decode_attention:std::env::var("AUGUR_HTTP_DECODE_ATTENTION")?,sampling:crate::augur_sampling::GREEDY.into(),sampling_seed:0,
     };
     let descriptor=Descriptor {schema:SCHEMA.into(),bindings:bindings.clone(),boundary:Boundary::InputEnd{token_ids:tokens.to_vec()}};
     descriptor.validate(&bindings)?;

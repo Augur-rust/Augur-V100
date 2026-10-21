@@ -7088,6 +7088,11 @@ mod ffi {
             q:u64, q_bytes:u64, absolute_start:u64, positions:u32,
             temperature234:f32, pair_scale234:f32,
         ) -> AugurCudaResultV1;
+        pub fn augur_cuda_qwen35_dflash_q8_selector_probability_submit_v4(
+            ordinal:c_int, stream:AugurCudaStream, args:*const AugurCudaQwen35DflashQ8SelectorArgsV1,
+            q:u64, q_bytes:u64, absolute_start:u64, positions:u32,
+            temperatures7:*const f32, pair_scales7:*const f32, seed:u64,
+        ) -> AugurCudaResultV1;
         pub fn augur_cuda_qwen35_dflash_q8_selector_probability_submit_v3(
             ordinal:c_int, stream:AugurCudaStream, args:*const AugurCudaQwen35DflashQ8SelectorArgsV1,
             q:u64, q_bytes:u64, absolute_start:u64, positions:u32,
@@ -7410,6 +7415,12 @@ mod ffi {
             stream: AugurCudaStream,
             args: *const AugurCudaBf16F32MatvecArgsV1,
         ) -> AugurCudaResultV1;
+        pub fn augur_cuda_nerkyor_bf16_gate_pair_f32_cta_submit_v1(
+            ordinal: c_int,
+            stream: AugurCudaStream,
+            a: *const AugurCudaBf16F32MatvecArgsV1,
+            b: *const AugurCudaBf16F32MatvecArgsV1,
+        ) -> AugurCudaResultV1;
         pub fn augur_cuda_bf16_f32_matvec_rows_submit_v1(
             ordinal: c_int,
             stream: AugurCudaStream,
@@ -7530,6 +7541,14 @@ mod ffi {
         pub fn augur_cuda_nvfp4_sm70_f32_matvec_submit_v1(
             ordinal: c_int,
             stream: AugurCudaStream,
+            args: *const AugurCudaNvfp4Sm70F32MatvecArgsV1,
+        ) -> AugurCudaResultV1;
+        pub fn augur_cuda_nvfp4_sm70_qpn_source_pair_submit_v1(
+            ordinal: c_int, stream: AugurCudaStream, args: *const AugurCudaNvfp4Sm70F32MatvecArgsV1,
+            mode: u32, splits: u32, partial: u64, partial_bytes: u64,
+        ) -> AugurCudaResultV1;
+        pub fn augur_cuda_nvfp4_sm70_large_split8_submit_v1(
+            ordinal: c_int, stream: AugurCudaStream,
             args: *const AugurCudaNvfp4Sm70F32MatvecArgsV1,
         ) -> AugurCudaResultV1;
         pub fn augur_cuda_nvfp4_sm70_small_gate_split16_submit_v1(
@@ -8061,6 +8080,12 @@ mod ffi {
             ordinal: c_int,
             stream: AugurCudaStream,
             args: *const AugurCudaQwen35PrefillLinearChunkArgsV1,
+        ) -> AugurCudaResultV1;
+        #[cfg(feature = "qwen35-prefill-cublas")]
+        pub fn augur_cuda_nerkyor_prefill_full_attention_canonical_submit_v1(
+            ordinal: c_int,
+            stream: AugurCudaStream,
+            args: *const AugurCudaQwen35PrefillFullAttentionArgsV1,
         ) -> AugurCudaResultV1;
         #[cfg(feature = "qwen35-prefill-cublas")]
         pub fn augur_cuda_qwen35_prefill_full_attention_preflight_v1(

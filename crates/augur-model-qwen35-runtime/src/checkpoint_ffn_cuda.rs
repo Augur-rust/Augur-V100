@@ -200,7 +200,7 @@ impl CheckpointFfnContext {
         #[cfg(feature = "qwen35-prefill-cublas")]
         Ok(Self {
             policy,
-            inner: if policy.uses_qpn_ffn() {
+            inner: if policy.uses_qpn_ffn() || policy.uses_nerkyor_qpn_source_pair() {
                 Some(enabled::Context::new(
                     stream,
                     policy.qpn_residual(),
@@ -387,7 +387,10 @@ mod enabled {
                 0,
                 1,
             )?;
-            if policy.qpn_shape_split() {
+            if policy.qpn_packed_f32_prefetch() {
+                program = program.with_scale_placement(
+                    augur_backend::cuda_qwen35_prefill_cublas::CudaQwen35QpnScalePlacement::ResidualPackedF32Prefetch)?;
+            } else if policy.qpn_shape_split() {
                 program = program.with_scale_placement(
                     augur_backend::cuda_qwen35_prefill_cublas::CudaQwen35QpnScalePlacement::ResidualWorkspaceShapeF64)?;
             } else if policy == CheckpointProjectionPolicy::AugurQpnAllWorkspaceCtaFoldF64 {

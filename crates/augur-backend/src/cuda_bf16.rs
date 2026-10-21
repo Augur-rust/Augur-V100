@@ -129,6 +129,49 @@ impl CudaBf16F32MatvecArgsV1 {
     
 }
 
+/// Explicit research pair. The caller retains the two authenticated scalar
+/// owners and all buffers; binding cannot opt an existing scalar into new math.
+#[derive(Clone, Copy, Debug)]
+pub struct CudaNerkyorBf16GatePairF32CtaArgsV1 {
+    stream_owner_instance_key: usize,
+    left: CudaBf16F32MatvecArgsV1,
+    right: CudaBf16F32MatvecArgsV1,
+}
+impl CudaNerkyorBf16GatePairF32CtaArgsV1 {
+    pub fn bind(stream: &OwnedCudaStream, left: CudaBf16F32MatvecArgsV1,
+        right: CudaBf16F32MatvecArgsV1) -> Result<Self, CudaRuntimeError> {
+        if [left.ordinal, right.ordinal].iter().any(|&v| v != stream.device_ordinal()) {
+            return Err(error(CudaRuntimeErrorKind::DeviceMismatch));
+        }
+        if left.tokens != 1 || right.tokens != 1 || left.raw.rows != 48 || right.raw.rows != 48
+            || left.raw.cols != 5120 || right.raw.cols != 5120 || left.raw.input != right.raw.input {
+            return Err(error(CudaRuntimeErrorKind::InvalidDimensions));
+        }
+        let ranges = [(left.raw.weight,left.raw.weight_len_bytes),
+            (right.raw.weight,right.raw.weight_len_bytes),(left.raw.input,left.raw.input_len_bytes),
+            (left.raw.output,left.raw.output_len_bytes),(right.raw.output,right.raw.output_len_bytes)];
+        for (i, &(a, an)) in ranges.iter().enumerate() {
+            let ae = a.checked_add(an).ok_or_else(|| error(CudaRuntimeErrorKind::InvalidDimensions))?;
+            for &(b, bn) in &ranges[i+1..] {
+                let be = b.checked_add(bn).ok_or_else(|| error(CudaRuntimeErrorKind::InvalidDimensions))?;
+                if a < be && b < ae { return Err(error(CudaRuntimeErrorKind::InvalidDimensions)); }
+            }
+        }
+        if crate::cuda_device_properties(stream.device_ordinal())?.compute_capability != crate::CudaComputeCapability::SM70 {
+            return Err(error(CudaRuntimeErrorKind::InvalidDimensions));
+        }
+        Ok(Self {stream_owner_instance_key: stream.owner_instance_key()?, left, right})
+    }
+    pub fn submit_for_plan(&self, stream: &OwnedCudaStream) -> Result<(), CudaRuntimeError> {
+        if stream.device_ordinal() != self.left.ordinal || stream.owner_instance_key()? != self.stream_owner_instance_key {
+            return Err(error(CudaRuntimeErrorKind::DeviceMismatch));
+        }
+        let result = unsafe { augur_cuda_sys::augur_cuda_nerkyor_bf16_gate_pair_f32_cta_submit_v1(
+            stream.device_ordinal(), stream.raw()?, &self.left.raw, &self.right.raw) };
+        CudaRuntimeError::from_result("nerkyor_bf16_gate_pair_f32_cta_submit_v1", result)
+    }
+}
+
 /// Independent token-major rows with the canonical warp-row FP64 reduction.
 /// The caller retains all backing buffers until stream completion.
 #[derive(Clone, Copy, Debug)]
@@ -755,4 +798,86 @@ mod row_tests {
         }
         stream.synchronize().unwrap();
     }
+
+}
+
+
+#[cfg(test)]
+mod nerkyor_gate_pair_tests {
+    use super::*;
+    use crate::OwnedCudaBuffer;
+    fn f32_view(b: &OwnedCudaBuffer, offset: usize, n: usize) -> CudaF32View {
+        CudaF32View::new(b.view(offset*4,n*4).unwrap(),PhysicalLayoutId::DEVICE_CONTIGUOUS_F32_CUDA_V1,n).unwrap()
+    }
+    #[test]
+    #[ignore = "requires exclusive SM70 GPU; isolated gate ABI/alias/stream contract"]
+    fn nerkyor_gate_pair_gpu_negative_contracts() {
+        let before = crate::cuda_device_allocation_snapshot();
+        {
+            let stream=OwnedCudaStream::create(0).unwrap();
+            let foreign=OwnedCudaStream::create(0).unwrap();
+            let w0=OwnedCudaBuffer::allocate(0,48*5120*2).unwrap();
+            let w1=OwnedCudaBuffer::allocate(0,48*5120*2).unwrap();
+            let x=OwnedCudaBuffer::allocate(0,5120*4).unwrap();
+            let y0=OwnedCudaBuffer::allocate(0,48*4).unwrap();
+            let y1=OwnedCudaBuffer::allocate(0,48*4).unwrap();
+            let weight_bytes:Vec<u8>=(0..48*5120).flat_map(|_|0x3f80_u16.to_le_bytes()).collect();
+            for w in [&w0,&w1] {w.copy_from_host_sync(&stream,&weight_bytes).unwrap();}
+            x.copy_from_host_sync(&stream,&vec![1.0_f32;5120].iter().flat_map(|v|v.to_le_bytes()).collect::<Vec<_>>()).unwrap();
+            let sentinel:Vec<u8>=vec![-77.0_f32;48].iter().flat_map(|v|v.to_le_bytes()).collect();
+            for y in [&y0,&y1] {y.copy_from_host_sync(&stream,&sentinel).unwrap();}
+            let weight=|w:&OwnedCudaBuffer| CudaBf16WeightViewV1::new(w.view(0,48*5120*2).unwrap(),PhysicalLayoutId::DEVICE_CONTIGUOUS_BF16_CUDA_V1,48,5120).unwrap();
+            let a=CudaBf16F32MatvecArgsV1::bind(&stream,weight(&w0),f32_view(&x,0,5120),f32_view(&y0,0,48)).unwrap();
+            let b=CudaBf16F32MatvecArgsV1::bind(&stream,weight(&w1),f32_view(&x,0,5120),f32_view(&y1,0,48)).unwrap();
+            let pair=CudaNerkyorBf16GatePairF32CtaArgsV1::bind(&stream,a,b).unwrap();
+            assert!(pair.submit_for_plan(&foreign).is_err());
+            for case in 0..9 {
+                let mut invalid=b;
+                match case {
+                    0=>invalid.raw.output=a.raw.output,
+                    1=>invalid.raw.weight=a.raw.weight,
+                    2=>invalid.raw.output=a.raw.input,
+                    3=>invalid.raw.rows=47,
+                    4=>invalid.raw.cols=5119,
+                    5=>invalid.raw.input+=4,
+                    6=>invalid.tokens=2,
+                    7=>invalid.ordinal=1,
+                    _=>invalid.raw.weight=u64::MAX-1,
+                }
+                assert!(CudaNerkyorBf16GatePairF32CtaArgsV1::bind(&stream,a,invalid).is_err(),"bind case {case}");
+            }
+            for case in 0..24 {
+                let mut aa=a.raw;let mut bb=b.raw;
+                match case {
+                    0=>aa.abi_version=0,1=>bb.struct_size=0,
+                    2=>aa.rows=47,3=>bb.cols=5119,
+                    4=>aa.weight=0,5=>bb.input=0,6=>aa.output=0,
+                    7=>aa.weight+=1,8=>aa.input+=1,9=>bb.output+=1,
+                    10=>aa.weight_len_bytes-=2,11=>aa.input_len_bytes-=4,
+                    12=>bb.output_len_bytes+=4,13=>aa.input=u64::MAX-3,
+                    14=>bb.output=u64::MAX-3,15=>aa.weight=u64::MAX-1,
+                    16=>bb.input+=4,17=>bb.output=aa.output,
+                    18=>bb.weight=aa.weight,19=>bb.output=aa.input,
+                    20=>aa.output=bb.weight,21=>aa.input=aa.weight,
+                    22=>bb.weight=aa.weight+2,_=>bb.output=aa.output+4,
+                }
+                // Invalid extents/identities reject before any device access.
+                let result=unsafe {augur_cuda_sys::augur_cuda_nerkyor_bf16_gate_pair_f32_cta_submit_v1(0,stream.raw().unwrap(),&aa,&bb)};
+                assert_eq!(result.status,augur_cuda_sys::AUGUR_CUDA_STATUS_INVALID_ARGUMENT,"native case {case}");
+            }
+            for y in [&y0,&y1] {
+                let mut result=vec![0;48*4];y.copy_to_host_sync(&stream,&mut result).unwrap();assert_eq!(result,sentinel);
+            }
+            let allocated=crate::cuda_device_allocation_snapshot().successful_allocations;
+            pair.submit_for_plan(&stream).unwrap();stream.synchronize().unwrap();
+            assert_eq!(allocated,crate::cuda_device_allocation_snapshot().successful_allocations);
+            for y in [&y0,&y1] {
+                let mut result=vec![0;48*4];y.copy_to_host_sync(&stream,&mut result).unwrap();
+                assert!(result.chunks_exact(4).all(|b|f32::from_le_bytes(b.try_into().unwrap())==5120.0));
+            }
+        }
+        let after=crate::cuda_device_allocation_snapshot();
+        assert_eq!(before.live_bytes,after.live_bytes);assert_eq!(before.live_allocations,after.live_allocations);
+    }
+
 }

@@ -127,7 +127,7 @@ pub use cuda_runtime::{
 #[cfg(feature = "cuda")]
 pub use cuda_add::CudaAddF32ArgsV1;
 #[cfg(feature = "cuda")]
-pub use cuda_bf16::{CudaBf16F32MatvecArgsV1, CudaBf16F32MatvecRowsArgsV1, CudaBf16TokenRowGatherArgsV1, CudaBf16TokenRowsGatherArgsV1, CudaBf16WeightViewV1};
+pub use cuda_bf16::{CudaNerkyorBf16GatePairF32CtaArgsV1, CudaBf16F32MatvecArgsV1, CudaBf16F32MatvecRowsArgsV1, CudaBf16TokenRowGatherArgsV1, CudaBf16TokenRowsGatherArgsV1, CudaBf16WeightViewV1};
 #[cfg(feature = "cuda")]
 pub use cuda_compensated::*;
 #[cfg(feature = "cuda")]

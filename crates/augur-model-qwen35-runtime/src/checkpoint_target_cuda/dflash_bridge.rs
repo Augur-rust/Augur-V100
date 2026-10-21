@@ -236,7 +236,11 @@ impl SharedHead {
         )?;
         if let Some(q)=&self.proposal_q {
             let c=self.probability_calibration;
-            if c==crate::augur_speculative_sampling::ProposalCalibration::DEFAULT {
+            let seed=crate::augur_sampling::process_seed()?;
+            if seed!=0 {
+                bound.submit_probability_positions_seeded(&self.stream,q.view(0,1024)?,absolute_start as u64,
+                    self.probability_positions as u32,c.temperatures,c.pair_scales,seed)?;
+            } else if c==crate::augur_speculative_sampling::ProposalCalibration::DEFAULT {
                 bound.submit_probability_prefix(&self.stream,q.view(0,1024)?,absolute_start as u64,self.probability_positions as u32)?;
             } else {
                 bound.submit_probability_positions(&self.stream,q.view(0,1024)?,absolute_start as u64,self.probability_positions as u32,c.temperatures,c.pair_scales)?;

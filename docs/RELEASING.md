@@ -41,3 +41,10 @@ For Windows users, start with [the Chinese setup guide](AUGUR_WINDOWS_USER_GUIDE
 The guide also explains 256K persistent-cache disk budgeting and why multiple chat windows do not map one-to-one to cache entries. The monitor shows native prefill TPS, decode TPS and context/compaction progress.
 
 Recent fixes are in the [changelog](../CHANGELOG.md). Recorded pre-release acceptance is in the [public receipt](public/AUGUR_RELEASE_ACCEPTANCE_20261015.json). Distribution-level VALIDATION.json records checks for each specific archive set; it is generated alongside the final files.
+
+
+## Side-by-side Python bridge updates
+
+For a Python-only runtime correction, `scripts/package_augur_bridge_update.py` can package an already verified Windows distribution plus a separately identified, tested bridge overlay. It copies only manifest-listed files, preserves the original source/build/CPU/runtime/distribution receipts byte-for-byte under `native-base/`, and adds a new `bridge-update.json` rather than changing historical receipts. Private overlay backups and run data are not selected. The package root's `Verify-Package.cmd` verifies the complete bundle and the original native/runtime identities without starting a GPU owner. `Start-Augur.cmd` starts the new bridge with the old native runtime. Do not use the old entry points inside `native-base/`.
+
+A source release may contain newer research kernels than the unchanged Windows native executables. State that difference in both release notes and validation metadata. A bridge update is not a native rebuild, a new performance result, or clean-machine qualification. Include both source and Windows archive pairs, SHA256 checksums and scoped validation notes; keep all original licenses/notices.

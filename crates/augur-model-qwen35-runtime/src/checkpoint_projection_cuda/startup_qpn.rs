@@ -59,7 +59,8 @@ pub(crate) fn upload(
             weight_global_scale,
             ..
         } => 1.0 / weight_global_scale,
-        CheckpointNvfp4Scale::ModelOpt { weight_scale_2, .. } => weight_scale_2,
+        CheckpointNvfp4Scale::ModelOpt { weight_scale_2, .. }
+        | CheckpointNvfp4Scale::ModelOptW4A16 { weight_scale_2 } => weight_scale_2,
     };
     Ok(match mode()? {
         Mode::Ggml => {

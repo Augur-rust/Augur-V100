@@ -125,7 +125,9 @@ def historical_arguments(name,args):
 
 
 def normalize_messages(messages,tools):
-    C.require(type(messages) is list and 1<=len(messages)<=129,'1..129 messages required')
+    C.require(type(messages) is list and bool(messages), 'messages must be a non-empty array')
+    C.require(len(messages) <= C.MAX_MESSAGES,
+              f'messages contains {len(messages)} entries; maximum is {C.MAX_MESSAGES}')
     result=[]; used_ids=set(); pending={}; tool_group={}; expected='user'; user_seen=False
     for index,m in enumerate(messages):
         C.require(type(m) is dict and isinstance(m.get('role'),str),'message object and role required')
@@ -145,7 +147,11 @@ def normalize_messages(messages,tools):
                 pending={};tool_group={};expected='assistant'
             continue
         C.require(not pending,'all outstanding tool calls require one result before another message')
-        C.require(role==expected,'invalid user/assistant/tool message sequence')
+        # Steering arrives at a completed tool boundary, before the next model
+        # call. Keep it as real user input instead of inventing an assistant
+        # acknowledgement. Outstanding/partial tool groups still reject above.
+        steering = role == 'user' and bool(result) and result[-1]['role'] == 'tool'
+        C.require(role == expected or steering, 'invalid user/assistant/tool message sequence')
         if role=='user':
             C.require(set(m)=={'role','content'},'unknown user message fields')
             result.append(safe_content(m['content'],'user'));expected='assistant';user_seen=True

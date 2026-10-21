@@ -21,6 +21,8 @@ enum Operation {
     Norm(CudaRmsnormF32ArgsV1),
     Projection(CheckpointScalarCudaProjection),
     SmallGatePair(CheckpointSmallGatePair),
+    #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+    NerkyorBf16GatePair(crate::checkpoint_projection_cuda::nerkyor_gate::NerkyorBf16GatePair),
     Gates(CudaQwen35LinearProjectionPostprocessArgsV1),
     Recurrent(augur_backend::CudaQwen35CheckpointLinearStepArgsV1),
     Add(CudaAddF32ArgsV1),
@@ -32,6 +34,8 @@ impl Operation {
         match self {
             Self::Projection(op) => op.submit_for_plan()?,
             Self::SmallGatePair(op) => op.submit_for_plan()?,
+            #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+            Self::NerkyorBf16GatePair(op) => op.submit_for_plan()?,
             Self::Norm(op) => op.submit_for_plan(stream)?,
             Self::Gates(op) => op.submit_for_plan(stream)?,
             Self::Recurrent(op) => op.submit_for_plan(stream)?,
@@ -214,8 +218,22 @@ impl CheckpointLinearCudaLayer {
             };
             operations.push(Operation::SmallGatePair(alpha.into_small_gate_pair(beta)?));
         } else {
-            operations.push(alpha);
-            operations.push(beta);
+            #[cfg(feature = "qwen35-nerkyor-dflash-research")]
+            if policy.uses_nerkyor_gate_f32_cta_research() {
+                let (Operation::Projection(alpha), Operation::Projection(beta)) = (alpha, beta) else {
+                    return Err("research BF16 gate projection binding changed".into());
+                };
+                operations.push(Operation::NerkyorBf16GatePair(
+                    crate::checkpoint_projection_cuda::nerkyor_gate::NerkyorBf16GatePair::bind(alpha, beta)?));
+            } else {
+                operations.push(alpha);
+                operations.push(beta);
+            }
+            #[cfg(not(feature = "qwen35-nerkyor-dflash-research"))]
+            {
+                operations.push(alpha);
+                operations.push(beta);
+            }
         }
         operations.push(Operation::Gates(
             CudaQwen35LinearProjectionPostprocessArgsV1::bind(
@@ -309,6 +327,11 @@ impl CheckpointLinearCudaLayer {
     #[cfg(test)]
     pub(crate) fn diagnostic_normalized_buffer(&self) -> &OwnedCudaBuffer {
         &self.buffers["normalized"]
+    }
+
+    #[cfg(all(test, feature = "qwen35-nerkyor-dflash-research"))]
+    pub(crate) fn diagnostic_bf16_gate_outputs(&self) -> (&OwnedCudaBuffer, &OwnedCudaBuffer) {
+        (&self.buffers["alpha"], &self.buffers["beta_raw"])
     }
 
     pub fn submitted_tokens(&self) -> usize {
@@ -537,3 +560,6 @@ impl CheckpointLinearCudaLayer {
         self.tokens=consumed;Ok(())
     }
 }
+
+#[cfg(all(feature = "qwen35-prefill-cublas", feature = "qwen35-nerkyor-dflash-research"))]
+pub(crate) mod nerkyor_batch;

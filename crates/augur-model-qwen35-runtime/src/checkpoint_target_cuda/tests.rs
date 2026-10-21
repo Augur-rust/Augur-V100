@@ -117,6 +117,7 @@ pub(super) fn projection_policy() -> CheckpointProjectionPolicy {
         Ok("augur-qpn-all-workspace-shape-pair-prefetch") => CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallPairPrefetchF64,
         Ok("augur-qpn-all-workspace-shape-small") => CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeSmallF64,
         Ok("augur-qpn-all-workspace-shape") => CheckpointProjectionPolicy::AugurQpnAllWorkspaceShapeF64,
+        Ok("augur-qpn-packed-f32-prefetch") => CheckpointProjectionPolicy::AugurQpnAllWorkspacePackedF32,
         Ok("augur-qpn-all-workspace-cta-fold") => CheckpointProjectionPolicy::AugurQpnAllWorkspaceCtaFoldF64,
         Ok("augur-qpn-all-workspace") => CheckpointProjectionPolicy::AugurQpnAllWorkspaceF64,
         Ok("augur-qpn-all-refined-fast") => CheckpointProjectionPolicy::AugurQpnAllRefinedFastF64,

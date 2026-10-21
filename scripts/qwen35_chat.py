@@ -20,6 +20,9 @@ from urllib.parse import urlsplit
 import uuid
 
 
+# Object-count safety bound, not a conversation-turn budget. HTTP byte and
+# token-context limits remain authoritative; never truncate messages to fit.
+MAX_MESSAGES = 65_536
 MAX_FRAME = 1_048_576
 MAX_RESPONSE = 16 * 1024 * 1024
 FRAME_CLOCK = 'http_read1_completion_perf_counter_same_timestamp_per_read'

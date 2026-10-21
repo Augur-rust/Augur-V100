@@ -287,15 +287,13 @@ impl CheckpointArtifact {
                         "F32",
                         shape,
                     )?;
-                    self.require_tensor(
-                        &suffix(if augur {
-                            "input_global_scale"
-                        } else {
-                            "input_scale"
-                        }),
-                        "F32",
-                        shape,
-                    )?;
+                    if self.profile != Qwen35CheckpointProfile::NerkyorW4a16 {
+                        self.require_tensor(
+                            &suffix(if augur { "input_global_scale" } else { "input_scale" }),
+                            "F32",
+                            shape,
+                        )?;
+                    }
                     expected_scaled.insert(suffix("weight_scale"));
                 }
                 CheckpointLinearStorage::Fp8 => {
@@ -320,6 +318,19 @@ impl CheckpointArtifact {
                 "checkpoint.scales",
                 "unexpected quantized linear namespace",
             ));
+        }
+        if self.profile == Qwen35CheckpointProfile::NerkyorW4a16 {
+            let expected: BTreeSet<_> = expected_scaled.iter().map(|n| format!("{n}_2")).collect();
+            let actual: BTreeSet<_> = self.locations.keys()
+                .filter(|n| n.ends_with(".weight_scale_2")).cloned().collect();
+            if actual != expected || self.locations.keys().any(|n| {
+                [".input_scale", ".input_scale_2", ".input_global_scale", ".activation_scale",
+                 ".activation_scale_2", ".weight_global_scale", ".weight_packed"]
+                    .iter().any(|suffix| n.ends_with(suffix))
+            }) {
+                return Err(Qwen35Error::invalid("checkpoint.scales",
+                    "W4A16 requires weight-only scale namespaces, no activation calibration"));
+            }
         }
         Ok(())
     }
@@ -408,12 +419,10 @@ impl CheckpointArtifact {
                 } else {
                     "weight_scale_2"
                 }))?;
-                let x = self.scalar(&suffix(if q {
-                    "input_global_scale"
-                } else {
-                    "input_scale"
-                }))?;
-                let global = if q {
+                let global = if self.profile == Qwen35CheckpointProfile::NerkyorW4a16 {
+                    CheckpointNvfp4Scale::ModelOptW4A16 { weight_scale_2: w }
+                } else if q {
+                    let x = self.scalar(&suffix("input_global_scale"))?;
                     CheckpointNvfp4Scale::CompressedTensors {
                         weight_global_scale: w,
                         input_global_scale: x,
@@ -421,7 +430,7 @@ impl CheckpointArtifact {
                 } else {
                     CheckpointNvfp4Scale::ModelOpt {
                         weight_scale_2: w,
-                        input_scale: x,
+                        input_scale: self.scalar(&suffix("input_scale"))?,
                     }
                 };
                 CheckpointNvfp4Matrix::new(count, spec.cols, &packed, &scales, global)?;
@@ -540,3 +549,7 @@ mod parallel_shard_tests {
         assert!(open_pinned_shards(&f.0,&hashes,5).is_err());
     }
 }
+
+#[cfg(test)]
+#[path = "checkpoint_artifact_nerkyor_tests.rs"]
+mod nerkyor_tests;

@@ -508,7 +508,8 @@ class Controller(A.Controller):
         if sampling.get('preset') == SAMPLING_PRESET:
             C.require(sampling.get('greedy') is False and all(
                 type(sampling.get(k)) in (int, float) and sampling.get(k) == v
-                for k, v in SAMPLING_VALUES.items()) and
+                for k, v in SAMPLING_VALUES.items() if k != 'seed') and
+                type(sampling.get('seed')) is int and 0 <= sampling['seed'] <= (1 << 64) - 1 and
                 (sampling.get('verification'), sampling.get('rng')) in SAMPLING_CONTRACTS, 'Native sampling contract mismatch')
         return h
 
@@ -528,7 +529,8 @@ class Controller(A.Controller):
             image_max_pixels_per_image=V.MAX_IMAGE_PIXELS if vision else None,
             image_max_total_pixels=V.MAX_TOTAL_IMAGE_PIXELS if vision else None,
             image_max_tokens=V.MAX_IMAGE_TOKENS if vision else None,
-            request_max_bytes=self.max_body,
+            request_max_bytes=self.max_body, max_messages=C.MAX_MESSAGES,
+            user_steering_after_tool_results=True,
             tool_delta_publication='validated_complete_calls_after_native_http_eof', strict_constrained_generation=False,
             startup_checkpoint_restore=False, arbitrary_output_budget=True, native_limits=self.limits,
             completion_authority='native_generation_only_not_tool_execution_or_code_verification',
@@ -575,9 +577,10 @@ class Controller(A.Controller):
         clean = dict(payload)
         sampled = self.health.get('sampling', {}).get('preset') == SAMPLING_PRESET
         if sampled:
-            # The native owner has a fixed preset. Accept only the parameters it
+            # Each native owner has a fixed preset and seed. Accept only parameters it
             # actually executes, including omitted parameters using that preset.
-            for key, expected in SAMPLING_VALUES.items():
+            expected_values = dict(SAMPLING_VALUES, seed=self.health['sampling']['seed'])
+            for key, expected in expected_values.items():
                 value = clean.pop(key, None)
                 if value is not None:
                     valid = type(value) is int if key in ('seed', 'top_k') else A.number(value)

@@ -18,16 +18,22 @@ use augur_backend::{
 use augur_core::PhysicalLayoutId;
 use augur_model_qwen35::DFlashConfig;
 use std::{collections::BTreeMap, rc::Rc};
+#[cfg(any(
+    feature = "qwen35-augur-dflash-bridge",
+    feature = "qwen35-nerkyor-dflash-research"
+))]
+pub(crate) mod augur_owner;
 pub(crate) mod capture_fc;
 mod selector_gate;
-#[cfg(feature = "qwen35-augur-dflash-bridge")]
-pub(crate) mod augur_owner;
 
 #[cfg(feature = "qwen35-output-head-acceptance")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum DraftFeatureIdentity {
     PayloadSha256([u8; 32]),
-    #[cfg(feature = "qwen35-augur-dflash-bridge")]
+    #[cfg(any(
+        feature = "qwen35-augur-dflash-bridge",
+        feature = "qwen35-nerkyor-dflash-research"
+    ))]
     OwnerLease(crate::checkpoint_target_cuda::dflash_capture::OwnerFeatureIdentity),
 }
 #[cfg(feature = "qwen35-output-head-acceptance")]
@@ -35,17 +41,22 @@ impl DraftFeatureIdentity {
     fn payload_sha256(self) -> Result<[u8; 32]> {
         match self {
             Self::PayloadSha256(sha) => Ok(sha),
-            #[cfg(feature = "qwen35-augur-dflash-bridge")]
+            #[cfg(any(
+                feature = "qwen35-augur-dflash-bridge",
+                feature = "qwen35-nerkyor-dflash-research"
+            ))]
             Self::OwnerLease(_) => Err("owner lease is not a feature-payload SHA256".into()),
         }
     }
 }
 enum InitialNoise<'a> {
     Host(&'a [f32]),
-    #[cfg(feature = "qwen35-augur-dflash-bridge")]
+    #[cfg(any(
+        feature = "qwen35-augur-dflash-bridge",
+        feature = "qwen35-nerkyor-dflash-research"
+    ))]
     Device(CudaBufferView),
 }
-
 
 #[cfg(feature = "qwen35-draft-private-state")]
 pub(crate) mod private_state;
@@ -152,8 +163,12 @@ fn validate_growing_refresh_phase(
     // same-stream boundaries. Full refresh discards ALL derived projections;
     // it must not require the previous rebind to have projected its dirty tail.
     // Half-prepared/submitted, graph-bound and poisoned owners still reject.
-    if graph_owned || poisoned || prepared != submitted
-        || context_rows == 0 || context_rows > 2048 || context_first_row > context_rows
+    if graph_owned
+        || poisoned
+        || prepared != submitted
+        || context_rows == 0
+        || context_rows > 2048
+        || context_first_row > context_rows
     {
         return Err("growing full-refresh owner is not reusable".into());
     }
@@ -161,11 +176,18 @@ fn validate_growing_refresh_phase(
 }
 
 fn growing_projection_start(
-    prepared: bool, submitted: bool, prior_first: usize, old_rows: usize,
-    evicted: usize, retained: usize,
+    prepared: bool,
+    submitted: bool,
+    prior_first: usize,
+    old_rows: usize,
+    evicted: usize,
+    retained: usize,
 ) -> Result<usize> {
-    if prepared != submitted || old_rows == 0 || old_rows > 2048
-        || prior_first > old_rows || evicted.checked_add(retained) != Some(old_rows)
+    if prepared != submitted
+        || old_rows == 0
+        || old_rows > 2048
+        || prior_first > old_rows
+        || evicted.checked_add(retained) != Some(old_rows)
     {
         return Err("growing projection reuse extent/phase mismatch".into());
     }
@@ -182,15 +204,22 @@ fn validate_growing_refresh(
     history: GrowingHistory,
     physical_capacity: usize,
 ) -> Result<()> {
-    let prior_end = prior.context_start_position.checked_add(prior.context_len)
+    let prior_end = prior
+        .context_start_position
+        .checked_add(prior.context_len)
         .ok_or("prior refresh extent overflow")?;
-    let next_end = next.context_start_position.checked_add(next.context_len)
+    let next_end = next
+        .context_start_position
+        .checked_add(next.context_len)
         .ok_or("next refresh extent overflow")?;
-    if history.capacity_rows() != physical_capacity || physical_capacity != 2048
-        || prior.context_len == 0 || prior.context_len > physical_capacity
+    if history.capacity_rows() != physical_capacity
+        || physical_capacity != 2048
+        || prior.context_len == 0
+        || prior.context_len > physical_capacity
         || next.context_len != history.active_rows()
         || next.context_start_position != history.start_position()
-        || next_end != history.cursor() || next_end <= prior_end
+        || next_end != history.cursor()
+        || next_end <= prior_end
         || next.request_generation <= prior.request_generation
         || prior.source_target_model_sha256 == [0; 32]
         || prior.source_target_model_sha256 != next.source_target_model_sha256
@@ -223,7 +252,7 @@ struct DFlashQ8CudaWeightPayload {
     file_bytes: u64,
     selector_gate_f32_sha256: Option<String>,
     selector_gate_fp64: bool,
-    selector_codebooks_bf16_sha256:Option<String>,
+    selector_codebooks_bf16_sha256: Option<String>,
 }
 
 impl DFlashQ8CudaWeights {
@@ -235,20 +264,35 @@ impl DFlashQ8CudaWeights {
         let stream = OwnedCudaStream::create(device).map_err(err)?;
         let mut owners = BTreeMap::new();
         for (name, _, bytes) in weights.tensors() {
-            if name=="candidate_selector.hidden_projection.weight" && weights.embedded_selector_gate().is_some() {continue;}
+            if name == "candidate_selector.hidden_projection.weight"
+                && weights.embedded_selector_gate().is_some()
+            {
+                continue;
+            }
             let owner = OwnedCudaBuffer::allocate(device, bytes.len()).map_err(err)?;
             owner.copy_from_host_sync(&stream, bytes).map_err(err)?;
             owners.insert(name.to_owned(), owner);
         }
-        let (selector_gate_f32_sha256,selector_gate_fp64)=if let Some((bytes,sha,fp64))=selector_gate::load(weights.embedded_selector_gate())? {
-            let owner=OwnedCudaBuffer::allocate(device,bytes.len()).map_err(err)?;
-            owner.copy_from_host_sync(&stream,&bytes).map_err(err)?;
-            owners.insert(selector_gate::KEY.to_owned(),owner);(Some(sha),fp64)
-        } else {(None,false)};
-        let selector_codebooks_bf16_sha256=if let Some((bytes,sha))=selector_gate::load_codebooks(selector_gate_f32_sha256.is_some())? {
-            let owner=OwnedCudaBuffer::allocate(device,bytes.len()).map_err(err)?;
-            owner.copy_from_host_sync(&stream,&bytes).map_err(err)?;owners.insert(selector_gate::CODEBOOK_KEY.to_owned(),owner);Some(sha)
-        } else {None};
+        let (selector_gate_f32_sha256, selector_gate_fp64) = if let Some((bytes, sha, fp64)) =
+            selector_gate::load(weights.embedded_selector_gate())?
+        {
+            let owner = OwnedCudaBuffer::allocate(device, bytes.len()).map_err(err)?;
+            owner.copy_from_host_sync(&stream, &bytes).map_err(err)?;
+            owners.insert(selector_gate::KEY.to_owned(), owner);
+            (Some(sha), fp64)
+        } else {
+            (None, false)
+        };
+        let selector_codebooks_bf16_sha256 = if let Some((bytes, sha)) =
+            selector_gate::load_codebooks(selector_gate_f32_sha256.is_some())?
+        {
+            let owner = OwnedCudaBuffer::allocate(device, bytes.len()).map_err(err)?;
+            owner.copy_from_host_sync(&stream, &bytes).map_err(err)?;
+            owners.insert(selector_gate::CODEBOOK_KEY.to_owned(), owner);
+            Some(sha)
+        } else {
+            None
+        };
         // Publication only after upload completion. Every request creates a
         // fresh stream and can then read these immutable allocations safely.
         stream.synchronize().map_err(err)?;
@@ -259,12 +303,17 @@ impl DFlashQ8CudaWeights {
                 device,
                 file_sha256,
                 file_bytes: weights.manifest().file_size,
-                selector_gate_f32_sha256,selector_gate_fp64,selector_codebooks_bf16_sha256,
+                selector_gate_f32_sha256,
+                selector_gate_fp64,
+                selector_codebooks_bf16_sha256,
             }),
         })
     }
 
-    pub(crate) fn embedded_selector_gate(&self)->bool { self.get("candidate_selector.hidden_projection.weight").is_none() }
+    pub(crate) fn embedded_selector_gate(&self) -> bool {
+        self.get("candidate_selector.hidden_projection.weight")
+            .is_none()
+    }
     pub fn config(&self) -> &DFlashConfig {
         &self.inner.config
     }
@@ -277,12 +326,20 @@ impl DFlashQ8CudaWeights {
     pub fn file_bytes(&self) -> u64 {
         self.inner.file_bytes
     }
-    pub fn selector_gate_f32_sha256(&self) -> Option<&str> { self.inner.selector_gate_f32_sha256.as_deref() }
-    pub fn selector_codebooks_bf16_sha256(&self)->Option<&str>{self.inner.selector_codebooks_bf16_sha256.as_deref()}
-    pub fn selector_gate_precision(&self)->&'static str {
-        if self.inner.selector_gate_fp64 {"f32_weights_f64_accum"}
-        else if self.inner.selector_gate_f32_sha256.is_some() {"f32_cublas_pedantic"}
-        else {"q8_0"}
+    pub fn selector_gate_f32_sha256(&self) -> Option<&str> {
+        self.inner.selector_gate_f32_sha256.as_deref()
+    }
+    pub fn selector_codebooks_bf16_sha256(&self) -> Option<&str> {
+        self.inner.selector_codebooks_bf16_sha256.as_deref()
+    }
+    pub fn selector_gate_precision(&self) -> &'static str {
+        if self.inner.selector_gate_fp64 {
+            "f32_weights_f64_accum"
+        } else if self.inner.selector_gate_f32_sha256.is_some() {
+            "f32_cublas_pedantic"
+        } else {
+            "q8_0"
+        }
     }
     pub fn resident_bytes(&self) -> usize {
         self.inner.owners.values().map(|w| w.len_bytes()).sum()
@@ -358,22 +415,40 @@ pub struct DFlashQ8CudaDiagnosticOutput {
 }
 
 impl DFlashQ8CudaBlock {
-    pub(crate) fn select_resident_gate(&mut self,enabled:bool,phase:bool)->Result<()> {
-        if self.poisoned || self.submitted || self.graph.is_some() || (enabled && self.weights.selector_gate_f32_sha256().is_none()) {
-            return Err("selector gate switch requires an idle uncaptured draft and resident F32 weights".into());
+    pub(crate) fn select_resident_gate(&mut self, enabled: bool, phase: bool) -> Result<()> {
+        if self.poisoned
+            || self.submitted
+            || self.graph.is_some()
+            || (enabled && self.weights.selector_gate_f32_sha256().is_none())
+        {
+            return Err(
+                "selector gate switch requires an idle uncaptured draft and resident F32 weights"
+                    .into(),
+            );
         }
         if self.weights.embedded_selector_gate() && (!enabled || phase) {
-            return Err("embedded gate requires global FP32 scope; no Q8 fallback gate is present".into());
+            return Err(
+                "embedded gate requires global FP32 scope; no Q8 fallback gate is present".into(),
+            );
         }
-        self.selector_gate_enabled=enabled;self.selector_phase_gate=enabled && phase;Ok(())
+        self.selector_gate_enabled = enabled;
+        self.selector_phase_gate = enabled && phase;
+        Ok(())
     }
 
     #[cfg(feature = "qwen35-session-checkpoint")]
     pub(crate) fn checkpoint_launch_policy(&self) -> Result<(bool, bool, bool)> {
         if self.poisoned || self.graph.is_some() || self.llama_projection_workspace_bytes() != 0 {
-            return Err("checkpoint cannot capture poisoned, graph-owned or experimental llama draft state".into());
+            return Err(
+                "checkpoint cannot capture poisoned, graph-owned or experimental llama draft state"
+                    .into(),
+            );
         }
-        Ok((self.context_rows_launch, self.block_rows_launch, self.q8_tile4))
+        Ok((
+            self.context_rows_launch,
+            self.block_rows_launch,
+            self.q8_tile4,
+        ))
     }
 
     #[cfg(feature = "qwen35-raw-committed-state")]
@@ -394,15 +469,19 @@ impl DFlashQ8CudaBlock {
                     else if name=="hidden0" || name=="zero" {"initialized_seed_or_constant"} else {"scratch_write_history_required"},
                 "raw_bytes_captured":false})
         }).collect::<Vec<_>>();
-        if buffers.len()!=40 {return Err("raw draft inventory count drift".into());}
-        Ok(serde_json::json!({"schema":"qwen35-draft-private-state-phase-inventory-v1",
+        if buffers.len() != 40 {
+            return Err("raw draft inventory count drift".into());
+        }
+        Ok(
+            serde_json::json!({"schema":"qwen35-draft-private-state-phase-inventory-v1",
             "context":self.context,"start":self.start,"window":self.window,
             "prepared":self.prepared,"submitted":self.submitted,"poisoned":self.poisoned,
             "context_first_row":self.context_first_row,"cached_capture":self.cached_capture,
             "anchor_token":self.anchor_token,"request_generation":self.request_generation,
             "context_rows_launch":self.context_rows_launch,"block_rows_launch":self.block_rows_launch,
             "q8_tile4":self.q8_tile4,"buffers":buffers,"workspace_bytes":self.workspace_bytes(),
-            "graph_present":false,"resident_candidates_present":false,"draft_equivalence_qualified":false}))
+            "graph_present":false,"resident_candidates_present":false,"draft_equivalence_qualified":false}),
+        )
     }
 
     /// Weights, inputs and every scratch allocation are owned before execution.
@@ -654,16 +733,33 @@ impl DFlashQ8CudaBlock {
     }
 
     pub(crate) fn from_resident_growing_device_features_with_fc(
-        weights:&DFlashQ8CudaWeights, seed:&DFlashDraftBlockInput,
-        capture:&DFlashTargetFeatureCaptureReceipt, features:CudaBufferView, noise:&[f32],
-        history:GrowingHistory, window:usize, source:&OwnedCudaStream,
-        fc:capture_fc::PreparedFc,
+        weights: &DFlashQ8CudaWeights,
+        seed: &DFlashDraftBlockInput,
+        capture: &DFlashTargetFeatureCaptureReceipt,
+        features: CudaBufferView,
+        noise: &[f32],
+        history: GrowingHistory,
+        window: usize,
+        source: &OwnedCudaStream,
+        fc: capture_fc::PreparedFc,
     ) -> Result<Self> {
-        if history.active_rows()!=capture.context_len || history.start_position()!=capture.context_start_position {
+        if history.active_rows() != capture.context_len
+            || history.start_position() != capture.context_start_position
+        {
             return Err("capture FC growing history extent".into());
         }
-        Self::from_resident_device_features_with_capacity(weights,seed,capture,features,noise,
-            history.start_position(),window,history.capacity_rows(),source,Some(fc))
+        Self::from_resident_device_features_with_capacity(
+            weights,
+            seed,
+            capture,
+            features,
+            noise,
+            history.start_position(),
+            window,
+            history.capacity_rows(),
+            source,
+            Some(fc),
+        )
     }
 
     fn from_resident_device_features_with_capacity(
@@ -694,34 +790,50 @@ impl DFlashQ8CudaBlock {
         }
         source_stream.synchronize().map_err(err)?;
 
-        if let Some(fc)=&prefetched_fc {
-            fc.validate(weights,target_capture,source_stream)?;
-            if physical_capacity!=context { return Err("capture FC physical extent differs".into()); }
+        if let Some(fc) = &prefetched_fc {
+            fc.validate(weights, target_capture, source_stream)?;
+            if physical_capacity != context {
+                return Err("capture FC physical extent differs".into());
+            }
         }
-        Self::allocate_device_features(weights, target_features, InitialNoise::Host(noise_embedding),
-            context, context_start_position, sliding_window, physical_capacity,
-            Some(target_capture.clone()), seed.block_tokens[0], seed.request_generation,
+        Self::allocate_device_features(
+            weights,
+            target_features,
+            InitialNoise::Host(noise_embedding),
+            context,
+            context_start_position,
+            sliding_window,
+            physical_capacity,
+            Some(target_capture.clone()),
+            seed.block_tokens[0],
+            seed.request_generation,
             #[cfg(feature = "qwen35-output-head-acceptance")]
-            DraftFeatureIdentity::PayloadSha256(seed.target_feature_sha256), prefetched_fc)
+            DraftFeatureIdentity::PayloadSha256(seed.target_feature_sha256),
+            prefetched_fc,
+        )
     }
 
     // Only called after the public SHA contract or the sealed owner-lease
     // contract has independently validated the initialized extent and source.
     fn allocate_device_features(
-        weights: &DFlashQ8CudaWeights, target_features: CudaBufferView,
-        noise: InitialNoise<'_>, context: usize, context_start_position: usize,
-        sliding_window: usize, physical_capacity: usize,
+        weights: &DFlashQ8CudaWeights,
+        target_features: CudaBufferView,
+        noise: InitialNoise<'_>,
+        context: usize,
+        context_start_position: usize,
+        sliding_window: usize,
+        physical_capacity: usize,
         cached_capture: Option<DFlashTargetFeatureCaptureReceipt>,
-        anchor_token: u32, request_generation: u64,
-        #[cfg(feature = "qwen35-output-head-acceptance")]
-        feature_identity: DraftFeatureIdentity,
+        anchor_token: u32,
+        request_generation: u64,
+        #[cfg(feature = "qwen35-output-head-acceptance")] feature_identity: DraftFeatureIdentity,
         prefetched_fc: Option<capture_fc::PreparedFc>,
     ) -> Result<Self> {
-        let (mut fc_output,fc_panel,capture_fc_report)=match prefetched_fc {
-            Some(fc)=>(Some(fc.output),Some(fc.panel),Some(fc.report)),
-            None=>(None,None,None),
+        let (mut fc_output, fc_panel, capture_fc_report) = match prefetched_fc {
+            Some(fc) => (Some(fc.output), Some(fc.panel), Some(fc.report)),
+            None => (None, None, None),
         };
-        let capture_fc_ready=fc_output.is_some();
+        let capture_fc_ready = fc_output.is_some();
 
         let device = weights.device_ordinal();
         let stream = OwnedCudaStream::create(device).map_err(err)?;
@@ -750,9 +862,9 @@ impl DFlashQ8CudaBlock {
             ("selector", B * 256),
             ("zero", H),
         ] {
-            if name=="target_fc" {
-                if let Some(output)=fc_output.take() {
-                    buffers.insert(name.to_owned(),output);
+            if name == "target_fc" {
+                if let Some(output) = fc_output.take() {
+                    buffers.insert(name.to_owned(), output);
                     continue;
                 }
             }
@@ -780,16 +892,25 @@ impl DFlashQ8CudaBlock {
         // The source lease/legacy caller stays alive through this entire call.
         let copy_result = (|| -> Result<()> {
             unsafe {
-                buffers["features"].copy_from_device_async_unchecked(&stream, 0, target_features).map_err(err)?;
+                buffers["features"]
+                    .copy_from_device_async_unchecked(&stream, 0, target_features)
+                    .map_err(err)?;
             }
             match noise {
                 InitialNoise::Host(values) => {
                     let bytes: Vec<u8> = values.iter().flat_map(|v| v.to_le_bytes()).collect();
-                    buffers["hidden0"].copy_from_host_sync(&stream, &bytes).map_err(err)?;
+                    buffers["hidden0"]
+                        .copy_from_host_sync(&stream, &bytes)
+                        .map_err(err)?;
                 }
-                #[cfg(feature = "qwen35-augur-dflash-bridge")]
+                #[cfg(any(
+                    feature = "qwen35-augur-dflash-bridge",
+                    feature = "qwen35-nerkyor-dflash-research"
+                ))]
                 InitialNoise::Device(view) => unsafe {
-                    buffers["hidden0"].copy_from_device_async_unchecked(&stream, 0, view).map_err(err)?;
+                    buffers["hidden0"]
+                        .copy_from_device_async_unchecked(&stream, 0, view)
+                        .map_err(err)?;
                 },
             }
             Ok(())
@@ -867,7 +988,10 @@ impl DFlashQ8CudaBlock {
     }
     pub fn workspace_bytes(&self) -> usize {
         self.buffers.values().map(|w| w.len_bytes()).sum::<usize>()
-            + self.history_weight_panel.as_ref().map_or(0, |w| w.len_bytes())
+            + self
+                .history_weight_panel
+                .as_ref()
+                .map_or(0, |w| w.len_bytes())
             + self.llama_projection_workspace_bytes()
     }
 
@@ -919,7 +1043,8 @@ impl DFlashQ8CudaBlock {
             {
                 self.anchor_token = input.seed.block_tokens[0];
                 self.request_generation = input.seed.request_generation;
-                self.feature_identity = DraftFeatureIdentity::PayloadSha256(input.seed.target_feature_sha256);
+                self.feature_identity =
+                    DraftFeatureIdentity::PayloadSha256(input.seed.target_feature_sha256);
             }
             Ok(())
         })();
@@ -999,7 +1124,8 @@ impl DFlashQ8CudaBlock {
             {
                 self.anchor_token = seed.block_tokens[0];
                 self.request_generation = seed.request_generation;
-                self.feature_identity = DraftFeatureIdentity::PayloadSha256(seed.target_feature_sha256);
+                self.feature_identity =
+                    DraftFeatureIdentity::PayloadSha256(seed.target_feature_sha256);
             }
             Ok(())
         })();
@@ -1068,7 +1194,8 @@ impl DFlashQ8CudaBlock {
             {
                 self.anchor_token = seed.block_tokens[0];
                 self.request_generation = seed.request_generation;
-                self.feature_identity = DraftFeatureIdentity::PayloadSha256(seed.target_feature_sha256);
+                self.feature_identity =
+                    DraftFeatureIdentity::PayloadSha256(seed.target_feature_sha256);
             }
             Ok(())
         })();
@@ -1095,16 +1222,33 @@ impl DFlashQ8CudaBlock {
     ) -> Result<()> {
         #[cfg(feature = "qwen35-output-head-acceptance")]
         self.feature_identity.payload_sha256()?;
-        validate_growing_refresh_phase(self.graph.is_some(), self.prepared, self.submitted,
-            self.poisoned, self.context_first_row, self.context)?;
-        let prior = self.cached_capture.as_ref().ok_or("missing prior draft capture")?;
+        validate_growing_refresh_phase(
+            self.graph.is_some(),
+            self.prepared,
+            self.submitted,
+            self.poisoned,
+            self.context_first_row,
+            self.context,
+        )?;
+        let prior = self
+            .cached_capture
+            .as_ref()
+            .ok_or("missing prior draft capture")?;
         validate_growing_refresh(prior, capture, history, self.physical_capacity)?;
         seed.validate(&self.config).map_err(err)?;
-        capture.validate_for_block(&self.config, seed, capture.feature_elements,
-            seed.target_feature_sha256).map_err(err)?;
-        if self.start != prior.context_start_position || self.context != prior.context_len
+        capture
+            .validate_for_block(
+                &self.config,
+                seed,
+                capture.feature_elements,
+                seed.target_feature_sha256,
+            )
+            .map_err(err)?;
+        if self.start != prior.context_start_position
+            || self.context != prior.context_len
             || features.len_bytes() != history.active_rows() * 5 * H * 4
-            || noise.len_bytes() != B * H * 4 || self.window != 2048
+            || noise.len_bytes() != B * H * 4
+            || self.window != 2048
             || features.device_ordinal() != self.weights.device_ordinal()
             || noise.device_ordinal() != self.weights.device_ordinal()
         {
@@ -1115,8 +1259,12 @@ impl DFlashQ8CudaBlock {
             // SAFETY: both owners remain alive through the draft stream terminal;
             // the caller has inserted the same-owner target handoff event wait.
             unsafe {
-                self.buffers["features"].copy_from_device_async_unchecked(&self.stream, 0, features).map_err(err)?;
-                self.buffers["hidden0"].copy_from_device_async_unchecked(&self.stream, 0, noise).map_err(err)?;
+                self.buffers["features"]
+                    .copy_from_device_async_unchecked(&self.stream, 0, features)
+                    .map_err(err)?;
+                self.buffers["hidden0"]
+                    .copy_from_device_async_unchecked(&self.stream, 0, noise)
+                    .map_err(err)?;
             }
             self.start = history.start_position();
             self.context = history.active_rows();
@@ -1128,11 +1276,14 @@ impl DFlashQ8CudaBlock {
             {
                 self.anchor_token = seed.block_tokens[0];
                 self.request_generation = seed.request_generation;
-                self.feature_identity = DraftFeatureIdentity::PayloadSha256(seed.target_feature_sha256);
+                self.feature_identity =
+                    DraftFeatureIdentity::PayloadSha256(seed.target_feature_sha256);
             }
             Ok(())
         })();
-        if result.is_ok() { self.poisoned = false; }
+        if result.is_ok() {
+            self.poisoned = false;
+        }
         result
     }
 
@@ -1199,7 +1350,12 @@ impl DFlashQ8CudaBlock {
                 // handoff are ordered on this stream, buffers outlive its drain.
                 unsafe {
                     self.buffers["features"]
-                        .shift_rows_u32_async_unchecked(&self.stream, row_bytes, retained, committed)
+                        .shift_rows_u32_async_unchecked(
+                            &self.stream,
+                            row_bytes,
+                            retained,
+                            committed,
+                        )
                         .map_err(err)?;
                 }
                 self.feature_shift_submissions += 1;
@@ -1265,7 +1421,8 @@ impl DFlashQ8CudaBlock {
             {
                 self.anchor_token = seed.block_tokens[0];
                 self.request_generation = seed.request_generation;
-                self.feature_identity = DraftFeatureIdentity::PayloadSha256(seed.target_feature_sha256);
+                self.feature_identity =
+                    DraftFeatureIdentity::PayloadSha256(seed.target_feature_sha256);
             }
             Ok(())
         })();
@@ -1289,15 +1446,16 @@ impl DFlashQ8CudaBlock {
         // A prior rebind leaves this owner unprepared with its old projected
         // rows still resident.  It is safe to chain another aggregate rebind
         // on the same stream; only a half-submitted block is forbidden.
-        if self.graph.is_some()
-            || self.prepared != self.submitted
-            || self.poisoned
-        {
+        if self.graph.is_some() || self.prepared != self.submitted || self.poisoned {
             return Err("growing context owner is not reusable".into());
         }
         let projection_start = growing_projection_start(
-            self.prepared, self.submitted, self.context_first_row, self.context,
-            plan.evicted_rows, plan.retained_rows,
+            self.prepared,
+            self.submitted,
+            self.context_first_row,
+            self.context,
+            plan.evicted_rows,
+            plan.retained_rows,
         )?;
         seed.validate(&self.config).map_err(err)?;
         let prior = self
@@ -1348,7 +1506,12 @@ impl DFlashQ8CudaBlock {
                 // are stream ordered and the owner lives through completion.
                 unsafe {
                     self.buffers["features"]
-                        .shift_rows_u32_async_unchecked(&self.stream, row_bytes, shift_rows, plan.evicted_rows)
+                        .shift_rows_u32_async_unchecked(
+                            &self.stream,
+                            row_bytes,
+                            shift_rows,
+                            plan.evicted_rows,
+                        )
                         .map_err(err)?;
                 }
                 self.feature_shift_submissions += 1;
@@ -1408,7 +1571,8 @@ impl DFlashQ8CudaBlock {
             {
                 self.anchor_token = seed.block_tokens[0];
                 self.request_generation = seed.request_generation;
-                self.feature_identity = DraftFeatureIdentity::PayloadSha256(seed.target_feature_sha256);
+                self.feature_identity =
+                    DraftFeatureIdentity::PayloadSha256(seed.target_feature_sha256);
             }
             Ok(())
         })();
@@ -1457,9 +1621,18 @@ impl DFlashQ8CudaBlock {
 
     #[cfg(feature = "qwen35-draft-target-verify")]
     pub(crate) fn enable_q8_b8_specialized(&mut self, enabled: bool) -> Result<()> {
-        if !enabled { return Ok(()); }
-        if self.prepared || self.submitted || self.poisoned || self.graph.is_some()
-            || self.context_first_row != 0 || !self.q8_tile4 || !self.context_rows_launch || !self.block_rows_launch {
+        if !enabled {
+            return Ok(());
+        }
+        if self.prepared
+            || self.submitted
+            || self.poisoned
+            || self.graph.is_some()
+            || self.context_first_row != 0
+            || !self.q8_tile4
+            || !self.context_rows_launch
+            || !self.block_rows_launch
+        {
             return Err("specialized B8 projection requires unused tile4 row owner".into());
         }
         self.q8_b8_specialized = true;
@@ -1469,29 +1642,51 @@ impl DFlashQ8CudaBlock {
     pub(crate) fn block_projection_kernel(&self) -> &'static str {
         #[cfg(feature = "qwen35-prefill-cublas")]
         if self.llama_projection_plan.is_some() {
-            return if self.q8_b8_direct {"augur_q8_b8_direct_f32_v1"} else {"llama_q8_1_mmvq8_v1"};
+            return if self.q8_b8_direct {
+                "augur_q8_b8_direct_f32_v1"
+            } else {
+                "llama_q8_1_mmvq8_v1"
+            };
         }
         "context_rows_block_rows_q8_tile4"
     }
     pub(crate) fn llama_projection_workspace_bytes(&self) -> usize {
         #[cfg(feature = "qwen35-prefill-cublas")]
-        if self.llama_projection_plan.is_some() { return (H * 5 * H + 512 * 5 * H) * 2; }
+        if self.llama_projection_plan.is_some() {
+            return (H * 5 * H + 512 * 5 * H) * 2;
+        }
         0
     }
     pub(crate) fn enable_llama_projection(&mut self) -> Result<()> {
-        if self.prepared || self.submitted || self.poisoned || self.graph.is_some()
-            || self.context_first_row != 0 || !self.q8_tile4
-            || !self.context_rows_launch || !self.block_rows_launch
-            || self.history_weight_panel.is_some() || self.capture_fc_ready {
+        if self.prepared
+            || self.submitted
+            || self.poisoned
+            || self.graph.is_some()
+            || self.context_first_row != 0
+            || !self.q8_tile4
+            || !self.context_rows_launch
+            || !self.block_rows_launch
+            || self.history_weight_panel.is_some()
+            || self.capture_fc_ready
+        {
             return Err("llama projection requires a fresh row-launched draft owner".into());
         }
         #[cfg(feature = "qwen35-prefill-cublas")]
         {
-            if self.llama_projection_plan.is_some() { return Err("duplicate llama draft plan".into()); }
+            if self.llama_projection_plan.is_some() {
+                return Err("duplicate llama draft plan".into());
+            }
             // One serial scratch arena: max FC weight25600x5120, max512 rows.
             // Never materialize all draft matrices, never allocate at submit.
-            self.llama_projection_plan = Some(augur_backend::CudaQwen35PrefillCublasPlanV1::new(
-                &self.stream, H * 5 * H, 5 * H, 512).map_err(err)?);
+            self.llama_projection_plan = Some(
+                augur_backend::CudaQwen35PrefillCublasPlanV1::new(
+                    &self.stream,
+                    H * 5 * H,
+                    5 * H,
+                    512,
+                )
+                .map_err(err)?,
+            );
             self.q8_b8_direct = match std::env::var("AUGUR_DFLASH_Q8_KERNEL").as_deref() {
                 Err(std::env::VarError::NotPresent) | Ok("llama") => false,
                 Ok("direct") => true,
@@ -1503,17 +1698,42 @@ impl DFlashQ8CudaBlock {
         Err("llama draft projection requires qwen35-prefill-cublas".into())
     }
     #[cfg(feature = "qwen35-prefill-cublas")]
-    fn project_llama(&self, name: &str, rows: usize, cols: usize, input: &str,
-        output: &str, first: usize, count: usize, out_first: usize) -> Result<()> {
-        let plan = self.llama_projection_plan.as_ref().ok_or("missing llama draft plan")?;
-        let owner = self.weights.get(name).ok_or_else(|| format!("missing weight {name}"))?;
-        let weight = CudaQ8_0WeightViewV1::new(owner.view(0,owner.len_bytes()).map_err(err)?,
-            PhysicalLayoutId::DEVICE_CONTIGUOUS_Q8_0_CUDA_V1, rows,cols).map_err(err)?;
+    fn project_llama(
+        &self,
+        name: &str,
+        rows: usize,
+        cols: usize,
+        input: &str,
+        output: &str,
+        first: usize,
+        count: usize,
+        out_first: usize,
+    ) -> Result<()> {
+        let plan = self
+            .llama_projection_plan
+            .as_ref()
+            .ok_or("missing llama draft plan")?;
+        let owner = self
+            .weights
+            .get(name)
+            .ok_or_else(|| format!("missing weight {name}"))?;
+        let weight = CudaQ8_0WeightViewV1::new(
+            owner.view(0, owner.len_bytes()).map_err(err)?,
+            PhysicalLayoutId::DEVICE_CONTIGUOUS_Q8_0_CUDA_V1,
+            rows,
+            cols,
+        )
+        .map_err(err)?;
         for offset in (0..count).step_by(512) {
-            let n=(count-offset).min(512);
-            plan.submit_dflash_llama_projection(&self.stream, weight,
-                self.view(input,(first+offset)*cols,n*cols)?,
-                self.view(output,(out_first+offset)*rows,n*rows)?,n).map_err(err)?;
+            let n = (count - offset).min(512);
+            plan.submit_dflash_llama_projection(
+                &self.stream,
+                weight,
+                self.view(input, (first + offset) * cols, n * cols)?,
+                self.view(output, (out_first + offset) * rows, n * rows)?,
+                n,
+            )
+            .map_err(err)?;
         }
         Ok(())
     }
@@ -1524,7 +1744,8 @@ impl DFlashQ8CudaBlock {
             |name: &str, rows: usize, cols: usize, input: &str, output: &str| -> Result<()> {
                 #[cfg(feature = "qwen35-prefill-cublas")]
                 if self.llama_projection_plan.is_some() {
-                    return self.project_llama(name,rows,cols,input,output,first,count,first);
+                    return self
+                        .project_llama(name, rows, cols, input, output, first, count, first);
                 }
                 let owner = self
                     .weights
@@ -1539,9 +1760,12 @@ impl DFlashQ8CudaBlock {
                 .map_err(err)?;
                 let reuse = self.history_projection_reuse
                     && Rows::history_projection_supported(count, rows, cols);
-                let panel = self.history_weight_panel.as_ref().zip(
-                    Rows::history_panel_elements(count, rows, cols));
-                let specialized = self.q8_b8_specialized && Rows::specialized_b8_supported(count, rows, cols);
+                let panel = self
+                    .history_weight_panel
+                    .as_ref()
+                    .zip(Rows::history_panel_elements(count, rows, cols));
+                let specialized =
+                    self.q8_b8_specialized && Rows::specialized_b8_supported(count, rows, cols);
                 let projection = if specialized {
                     Rows::projection_b8_specialized
                 } else if reuse {
@@ -1554,35 +1778,57 @@ impl DFlashQ8CudaBlock {
                 let input = self.view(input, first * cols, count * cols)?;
                 let output = self.view(output, first * rows, count * rows)?;
                 let bound = if let Some((scratch, elements)) = panel {
-                    let scratch = CudaF32View::new(scratch.view(0, elements * 4).map_err(err)?,
-                        PhysicalLayoutId::DEVICE_CONTIGUOUS_F32_CUDA_V1, elements).map_err(err)?;
+                    let scratch = CudaF32View::new(
+                        scratch.view(0, elements * 4).map_err(err)?,
+                        PhysicalLayoutId::DEVICE_CONTIGUOUS_F32_CUDA_V1,
+                        elements,
+                    )
+                    .map_err(err)?;
                     if self.history_panel_token8 {
-                        Rows::projection_history_panel_token8(&self.stream, weight, input, output, scratch, count)
+                        Rows::projection_history_panel_token8(
+                            &self.stream,
+                            weight,
+                            input,
+                            output,
+                            scratch,
+                            count,
+                        )
                     } else {
-                        Rows::projection_history_panel(&self.stream, weight, input, output, scratch, count)
+                        Rows::projection_history_panel(
+                            &self.stream,
+                            weight,
+                            input,
+                            output,
+                            scratch,
+                            count,
+                        )
                     }
                 } else {
                     projection(&self.stream, weight, input, output, count)
                 };
                 bound
-                .map_err(err)?
-                .submit_for_plan(&self.stream)
-                .map_err(err)?;
+                    .map_err(err)?
+                    .submit_for_plan(&self.stream)
+                    .map_err(err)?;
                 if specialized {
-                    self.q8_b8_specialized_submissions.set(self.q8_b8_specialized_submissions.get() + 1);
+                    self.q8_b8_specialized_submissions
+                        .set(self.q8_b8_specialized_submissions.get() + 1);
                 }
                 if let Some((_, elements)) = panel {
-                    self.history_panel_submissions.set(self.history_panel_submissions.get() + 1);
-                    self.history_panel_kernel_launches.set(self.history_panel_kernel_launches.get()
-                        + (2 * rows / (elements / cols)) as u64);
+                    self.history_panel_submissions
+                        .set(self.history_panel_submissions.get() + 1);
+                    self.history_panel_kernel_launches.set(
+                        self.history_panel_kernel_launches.get()
+                            + (2 * rows / (elements / cols)) as u64,
+                    );
                 } else if reuse {
-                    self.history_projection_reuse_submissions.set(
-                        self.history_projection_reuse_submissions.get() + 1);
+                    self.history_projection_reuse_submissions
+                        .set(self.history_projection_reuse_submissions.get() + 1);
                 }
                 Ok(())
             };
         if self.capture_fc_ready {
-            if first!=0 || count!=self.context || self.context!=2048 {
+            if first != 0 || count != self.context || self.context != 2048 {
                 return Err("capture FC initial consumption extent".into());
             }
         } else {
@@ -1609,13 +1855,17 @@ impl DFlashQ8CudaBlock {
                     self.weight_f32(&format!("{p}.k_norm.weight"), 128)?,
                     self.view("kv_norm", first * KV, count * KV)?,
                     self.view(&format!("k{layer}"), first * KV, count * KV)?,
-                    count, 8, self.start + first, DFLASH_ROPE_THETA, 1e-6,
+                    count,
+                    8,
+                    self.start + first,
+                    DFLASH_ROPE_THETA,
+                    1e-6,
                 )
                 .map_err(err)?
                 .submit_for_plan(&self.stream)
                 .map_err(err)?;
-                self.context_key_norm_rope_submissions.set(
-                    self.context_key_norm_rope_submissions.get() + 1);
+                self.context_key_norm_rope_submissions
+                    .set(self.context_key_norm_rope_submissions.get() + 1);
             } else {
                 Rows::norm(
                     &self.stream,
@@ -1654,11 +1904,20 @@ impl DFlashQ8CudaBlock {
 
     #[cfg(feature = "qwen35-draft-target-verify")]
     pub(crate) fn enable_history_prepare(
-        &mut self, projection_reuse: bool, key_norm_rope: bool,
+        &mut self,
+        projection_reuse: bool,
+        key_norm_rope: bool,
     ) -> Result<()> {
-        if !projection_reuse && !key_norm_rope { return Ok(()); }
-        if self.prepared || self.submitted || self.poisoned || self.context_first_row != 0
-            || !self.context_rows_launch || (projection_reuse && !self.q8_tile4) {
+        if !projection_reuse && !key_norm_rope {
+            return Ok(());
+        }
+        if self.prepared
+            || self.submitted
+            || self.poisoned
+            || self.context_first_row != 0
+            || !self.context_rows_launch
+            || (projection_reuse && !self.q8_tile4)
+        {
             return Err("history preparation policy requires unused compatible owner".into());
         }
         self.history_projection_reuse = projection_reuse;
@@ -1667,21 +1926,41 @@ impl DFlashQ8CudaBlock {
     }
 
     #[cfg(feature = "qwen35-draft-target-verify")]
-    pub(crate) fn enable_history_weight_panels(&mut self, enabled: bool, token8: bool) -> Result<()> {
-        if token8 && !enabled { return Err("history panel token8 requires weight panels".into()); }
-        if !enabled { return Ok(()); }
-        if self.prepared || self.submitted || self.poisoned || self.graph.is_some()
-            || self.context_first_row != 0 || !self.context_rows_launch || !self.q8_tile4
-            || !self.history_projection_reuse || (self.history_weight_panel.is_some() && !self.capture_fc_ready) {
+    pub(crate) fn enable_history_weight_panels(
+        &mut self,
+        enabled: bool,
+        token8: bool,
+    ) -> Result<()> {
+        if token8 && !enabled {
+            return Err("history panel token8 requires weight panels".into());
+        }
+        if !enabled {
+            return Ok(());
+        }
+        if self.prepared
+            || self.submitted
+            || self.poisoned
+            || self.graph.is_some()
+            || self.context_first_row != 0
+            || !self.context_rows_launch
+            || !self.q8_tile4
+            || !self.history_projection_reuse
+            || (self.history_weight_panel.is_some() && !self.capture_fc_ready)
+        {
             return Err("history weight panels require unused compatible owner".into());
         }
         if self.capture_fc_ready {
-            if !token8 || self.history_weight_panel.as_ref().map(|p|p.len_bytes())!=Some(128*25600*4) {
+            if !token8
+                || self.history_weight_panel.as_ref().map(|p| p.len_bytes())
+                    != Some(128 * 25600 * 4)
+            {
                 return Err("capture FC requires retained token8 panel".into());
             }
         } else {
-            self.history_weight_panel = Some(OwnedCudaBuffer::allocate(
-                self.stream.device_ordinal(), 128 * 25600 * 4).map_err(err)?);
+            self.history_weight_panel = Some(
+                OwnedCudaBuffer::allocate(self.stream.device_ordinal(), 128 * 25600 * 4)
+                    .map_err(err)?,
+            );
         }
         self.history_panel_token8 = token8;
         Ok(())
@@ -1723,7 +2002,10 @@ impl DFlashQ8CudaBlock {
         self.poisoned = true;
         let result = (|| {
             let first = self.context_first_row;
-            let count = self.context.checked_sub(first).ok_or("context projection frontier exceeds initialized extent")?;
+            let count = self
+                .context
+                .checked_sub(first)
+                .ok_or("context projection frontier exceeds initialized extent")?;
             if count == 0 {
                 // A same-epoch repeated proposal may reuse every initialized
                 // context row. No zero-row projection kernel is launched.
@@ -1966,30 +2248,60 @@ impl DFlashQ8CudaBlock {
                 self.add("ffn_in", "conv_out", &format!("hidden{}", layer + 1))?;
             }
             self.norm("norm.weight", "hidden5", "final", B, H)?;
-            #[cfg(feature="qwen35-prefill-cublas")]
-            let gate_f32=if let Some(owner)=self.weights.get(selector_gate::KEY).filter(|_|self.selector_gate_enabled) {
-                let plan=self.llama_projection_plan.as_ref().ok_or("F32 gate requires llama projection plan")?;
-                let weight=CudaF32View::new(owner.view(0,owner.len_bytes()).map_err(err)?,
-                    PhysicalLayoutId::DEVICE_CONTIGUOUS_F32_CUDA_V1,256*H).map_err(err)?;
-                plan.submit_dflash_selector_gate_with_accumulation(&self.stream,weight,self.view("final",0,B*H)?,self.view("selector",0,B*256)?,self.weights.inner.selector_gate_fp64).map_err(err)?;
+            #[cfg(feature = "qwen35-prefill-cublas")]
+            let gate_f32 = if let Some(owner) = self
+                .weights
+                .get(selector_gate::KEY)
+                .filter(|_| self.selector_gate_enabled)
+            {
+                let plan = self
+                    .llama_projection_plan
+                    .as_ref()
+                    .ok_or("F32 gate requires llama projection plan")?;
+                let weight = CudaF32View::new(
+                    owner.view(0, owner.len_bytes()).map_err(err)?,
+                    PhysicalLayoutId::DEVICE_CONTIGUOUS_F32_CUDA_V1,
+                    256 * H,
+                )
+                .map_err(err)?;
+                plan.submit_dflash_selector_gate_with_accumulation(
+                    &self.stream,
+                    weight,
+                    self.view("final", 0, B * H)?,
+                    self.view("selector", 0, B * 256)?,
+                    self.weights.inner.selector_gate_fp64,
+                )
+                .map_err(err)?;
                 true
-            } else {false};
-            #[cfg(not(feature="qwen35-prefill-cublas"))]
-            let gate_f32=false;
+            } else {
+                false
+            };
+            #[cfg(not(feature = "qwen35-prefill-cublas"))]
+            let gate_f32 = false;
             // All backbone layers have consumed projected. Keep the Q8 gate in
             // this dead scratch until the shared-head consumer drains its stream.
             if gate_f32 && self.selector_phase_gate {
-                self.matvec("candidate_selector.hidden_projection.weight",256,H,"final","projected",B,0)?;
+                self.matvec(
+                    "candidate_selector.hidden_projection.weight",
+                    256,
+                    H,
+                    "final",
+                    "projected",
+                    B,
+                    0,
+                )?;
             }
-            if !gate_f32 { self.matvec(
-                "candidate_selector.hidden_projection.weight",
-                256,
-                H,
-                "final",
-                "selector",
-                B,
-                0,
-            )?; }
+            if !gate_f32 {
+                self.matvec(
+                    "candidate_selector.hidden_projection.weight",
+                    256,
+                    H,
+                    "final",
+                    "selector",
+                    B,
+                    0,
+                )?;
+            }
             #[cfg(feature = "qwen35-output-head-acceptance")]
             if let Some(candidates) = &self.candidates {
                 candidates.submit(self)?;
@@ -2178,15 +2490,40 @@ impl DFlashQ8CudaBlock {
     ) -> Result<()> {
         #[cfg(feature = "qwen35-prefill-cublas")]
         if let Some(plan) = self.llama_projection_plan.as_ref() {
-            if out_offset % rows != 0 { return Err("unaligned draft output row".into()); }
-            if self.q8_b8_direct && batch == B {
-                let owner = self.weights.get(name).ok_or_else(|| format!("missing weight {name}"))?;
-                let weight = CudaQ8_0WeightViewV1::new(owner.view(0,owner.len_bytes()).map_err(err)?,
-                    PhysicalLayoutId::DEVICE_CONTIGUOUS_Q8_0_CUDA_V1, rows,cols).map_err(err)?;
-                return plan.submit_dflash_q8_b8_direct(&self.stream, weight,
-                    self.view(input,0,B*cols)?, self.view(output,out_offset,B*rows)?).map_err(err);
+            if out_offset % rows != 0 {
+                return Err("unaligned draft output row".into());
             }
-            return self.project_llama(name,rows,cols,input,output,0,batch,out_offset/rows);
+            if self.q8_b8_direct && batch == B {
+                let owner = self
+                    .weights
+                    .get(name)
+                    .ok_or_else(|| format!("missing weight {name}"))?;
+                let weight = CudaQ8_0WeightViewV1::new(
+                    owner.view(0, owner.len_bytes()).map_err(err)?,
+                    PhysicalLayoutId::DEVICE_CONTIGUOUS_Q8_0_CUDA_V1,
+                    rows,
+                    cols,
+                )
+                .map_err(err)?;
+                return plan
+                    .submit_dflash_q8_b8_direct(
+                        &self.stream,
+                        weight,
+                        self.view(input, 0, B * cols)?,
+                        self.view(output, out_offset, B * rows)?,
+                    )
+                    .map_err(err);
+            }
+            return self.project_llama(
+                name,
+                rows,
+                cols,
+                input,
+                output,
+                0,
+                batch,
+                out_offset / rows,
+            );
         }
         if self.block_rows_launch {
             use augur_backend::cuda_dflash_context_rows::CudaDflashContextRowsV1 as Rows;
@@ -2201,7 +2538,8 @@ impl DFlashQ8CudaBlock {
                 cols,
             )
             .map_err(err)?;
-            let specialized = self.q8_b8_specialized && Rows::specialized_b8_supported(batch, rows, cols);
+            let specialized =
+                self.q8_b8_specialized && Rows::specialized_b8_supported(batch, rows, cols);
             let projection = if specialized {
                 Rows::projection_b8_specialized
             } else if self.q8_tile4 {
@@ -2220,7 +2558,8 @@ impl DFlashQ8CudaBlock {
             .submit_for_plan(&self.stream)
             .map_err(err)?;
             if specialized {
-                self.q8_b8_specialized_submissions.set(self.q8_b8_specialized_submissions.get() + 1);
+                self.q8_b8_specialized_submissions
+                    .set(self.q8_b8_specialized_submissions.get() + 1);
             }
             return Ok(());
         }
@@ -2521,7 +2860,9 @@ mod tests {
                 device: 0,
                 file_sha256: "a".repeat(64),
                 file_bytes: 123,
-                selector_gate_f32_sha256: None,selector_gate_fp64:false,selector_codebooks_bf16_sha256:None,
+                selector_gate_f32_sha256: None,
+                selector_gate_fp64: false,
+                selector_codebooks_bf16_sha256: None,
             }),
         };
         let weak = Rc::downgrade(&weights.inner);
@@ -2668,15 +3009,7 @@ mod tests {
                 history.active_rows(),
             );
             assert_eq!(plan.append_rows, expected_append);
-            validate_growing_rebind(
-                &prior,
-                &next,
-                plan,
-                history,
-                2048,
-                plan.append_rows,
-            )
-            .unwrap();
+            validate_growing_rebind(&prior, &next, plan, history, 2048, plan.append_rows).unwrap();
         }
     }
 
@@ -2685,21 +3018,40 @@ mod tests {
         for rows in [8, 2048] {
             for input_tail in [1, 8] {
                 let mut history = GrowingHistory::from_extent(
-                    crate::GrowingHistoryConfig::default_2048(), 6144, rows,
-                ).unwrap();
+                    crate::GrowingHistoryConfig::default_2048(),
+                    6144,
+                    rows,
+                )
+                .unwrap();
                 let applied_input_plan = history.append(input_tail).unwrap();
                 let fresh = cached_capture(history.start_position(), 1, history.active_rows());
                 // A newly rebuilt draft already covers this input. Replaying
                 // its old append plan must remain rejected, even if all bytes
                 // and model identities match and only one anchor was emitted.
-                assert!(validate_growing_rebind(&fresh, &fresh, applied_input_plan,
-                    history, 2048, input_tail).is_err());
-                assert!(validate_growing_refresh_phase(false, false, false, false,
-                    0, history.active_rows()).is_ok());
+                assert!(validate_growing_rebind(
+                    &fresh,
+                    &fresh,
+                    applied_input_plan,
+                    history,
+                    2048,
+                    input_tail
+                )
+                .is_err());
+                assert!(validate_growing_refresh_phase(
+                    false,
+                    false,
+                    false,
+                    false,
+                    0,
+                    history.active_rows()
+                )
+                .is_ok());
                 let draft_base = history;
                 // The next real user suffix advances the target, not a fake
                 // seed submit. A full refresh then admits the untouched draft.
-                for count in [8, 1] { history.append(count).unwrap(); }
+                for count in [8, 1] {
+                    history.append(count).unwrap();
+                }
                 let next = cached_capture(history.start_position(), 2, history.active_rows());
                 validate_growing_refresh(&fresh, &next, history, 2048).unwrap();
                 assert!(validate_growing_refresh(&fresh, &fresh, history, 2048).is_err());
@@ -2707,16 +3059,39 @@ mod tests {
                 // last individual append plan cannot replace the aggregate.
                 for generation in [3, 4] {
                     let tail = history.append(3).unwrap();
-                    let next = cached_capture(history.start_position(), generation,
-                        history.active_rows());
-                    assert!(validate_growing_rebind(&fresh, &next, tail,
-                        history, 2048, tail.append_rows).is_err());
+                    let next =
+                        cached_capture(history.start_position(), generation, history.active_rows());
+                    assert!(validate_growing_rebind(
+                        &fresh,
+                        &next,
+                        tail,
+                        history,
+                        2048,
+                        tail.append_rows
+                    )
+                    .is_err());
                     let aggregate = GrowingHistoryPlan::between(draft_base, history).unwrap();
-                    validate_growing_rebind(&fresh, &next, aggregate,
-                        history, 2048, aggregate.append_rows).unwrap();
-                    assert_eq!(growing_projection_start(false, false, 0,
-                        draft_base.active_rows(), aggregate.evicted_rows,
-                        aggregate.retained_rows).unwrap(), 0);
+                    validate_growing_rebind(
+                        &fresh,
+                        &next,
+                        aggregate,
+                        history,
+                        2048,
+                        aggregate.append_rows,
+                    )
+                    .unwrap();
+                    assert_eq!(
+                        growing_projection_start(
+                            false,
+                            false,
+                            0,
+                            draft_base.active_rows(),
+                            aggregate.evicted_rows,
+                            aggregate.retained_rows
+                        )
+                        .unwrap(),
+                        0
+                    );
                 }
             }
         }
@@ -2729,10 +3104,15 @@ mod tests {
                 for submitted in [false, true] {
                     for poisoned in [false, true] {
                         for first_row in [0, 8, 2048, 2049] {
-                            let expected = !graph && !poisoned
-                                && prepared == submitted && first_row <= 2048;
-                            assert_eq!(validate_growing_refresh_phase(graph, prepared, submitted,
-                                poisoned, first_row, 2048).is_ok(), expected);
+                            let expected =
+                                !graph && !poisoned && prepared == submitted && first_row <= 2048;
+                            assert_eq!(
+                                validate_growing_refresh_phase(
+                                    graph, prepared, submitted, poisoned, first_row, 2048
+                                )
+                                .is_ok(),
+                                expected
+                            );
                         }
                     }
                 }
@@ -2747,7 +3127,9 @@ mod tests {
         // The subsequent >window append must refresh all 2048 rows, not reject.
         assert!(validate_growing_refresh_phase(false, false, false, false, 2046, 2048).is_ok());
         for (first, rows) in [(0, 0), (0, 2049), (9, 8), (usize::MAX, 2048)] {
-            assert!(validate_growing_refresh_phase(false, false, false, false, first, rows).is_err());
+            assert!(
+                validate_growing_refresh_phase(false, false, false, false, first, rows).is_err()
+            );
         }
         assert!(validate_growing_refresh_phase(false, true, false, false, 2046, 2048).is_err());
         assert!(validate_growing_refresh_phase(false, false, true, false, 2046, 2048).is_err());
@@ -2765,17 +3147,31 @@ mod tests {
             for first in 0..=old_rows {
                 for evicted in [0, old_rows / 2, old_rows] {
                     let retained = old_rows - evicted;
-                    let valid_rows = (0..old_rows).map(|i| i < first).skip(evicted)
-                        .take_while(|valid| *valid).count();
-                    assert_eq!(growing_projection_start(false, false, first, old_rows, evicted, retained).unwrap(), valid_rows);
-                    assert_eq!(growing_projection_start(true, true, first, old_rows, evicted, retained).unwrap(), retained);
+                    let valid_rows = (0..old_rows)
+                        .map(|i| i < first)
+                        .skip(evicted)
+                        .take_while(|valid| *valid)
+                        .count();
+                    assert_eq!(
+                        growing_projection_start(false, false, first, old_rows, evicted, retained)
+                            .unwrap(),
+                        valid_rows
+                    );
+                    assert_eq!(
+                        growing_projection_start(true, true, first, old_rows, evicted, retained)
+                            .unwrap(),
+                        retained
+                    );
                 }
             }
         }
         for (p, s, first, rows, evict, retain) in [
-            (true, false, 0, 8, 1, 7), (false, true, 0, 8, 1, 7),
-            (false, false, 9, 8, 1, 7), (false, false, 0, 8, 1, 8),
-            (false, false, 0, 0, 0, 0), (false, false, 0, 2049, 1, 2048),
+            (true, false, 0, 8, 1, 7),
+            (false, true, 0, 8, 1, 7),
+            (false, false, 9, 8, 1, 7),
+            (false, false, 0, 8, 1, 8),
+            (false, false, 0, 0, 0, 0),
+            (false, false, 0, 2049, 1, 2048),
         ] {
             assert!(growing_projection_start(p, s, first, rows, evict, retain).is_err());
         }
@@ -2785,9 +3181,12 @@ mod tests {
     fn growing_full_refresh_binds_all_input_rows_not_just_last_append_plan() {
         for rows in [1, 7, 8, 31, 2047, 2048] {
             let prior = cached_capture(0, 9, rows);
-            let mut history = GrowingHistory::from_extent(
-                crate::GrowingHistoryConfig::default_2048(), 0, rows).unwrap();
-            for _ in 0..2051 { history.append(1).unwrap(); }
+            let mut history =
+                GrowingHistory::from_extent(crate::GrowingHistoryConfig::default_2048(), 0, rows)
+                    .unwrap();
+            for _ in 0..2051 {
+                history.append(1).unwrap();
+            }
             let next = cached_capture(history.start_position(), 11, history.active_rows());
             validate_growing_refresh(&prior, &next, history, 2048).unwrap();
             for mutation in 0..6 {
@@ -2829,7 +3228,9 @@ mod tests {
                 8 => bad_next.context_start_position += 1,
                 _ => bad_next.context_len -= 1,
             }
-            assert!(validate_growing_rebind(&prior, &bad_next, bad_plan, history, 2048, 3).is_err());
+            assert!(
+                validate_growing_rebind(&prior, &bad_next, bad_plan, history, 2048, 3).is_err()
+            );
         }
         assert!(validate_growing_rebind(&prior, &next, plan, history, 1024, 3).is_err());
         assert!(validate_growing_rebind(&prior, &next, plan, history, 2048, 0).is_err());

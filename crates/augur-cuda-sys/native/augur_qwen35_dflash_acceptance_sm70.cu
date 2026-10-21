@@ -720,8 +720,8 @@ template<> __device__ float augur_qwen35_selector_codebook<true>(const void* bas
 
 // Counter domains match augur_speculative_sampling.rs. Proposal never shares
 // its random draw with acceptance, correction or the target bonus token.
-__device__ static double augur_qwen35_proposal_uniform(uint64_t position) {
-    uint64_t x = UINT64_C(0x445241465450524f) + (position + 1) * UINT64_C(0x9e3779b97f4a7c15);
+__device__ static double augur_qwen35_proposal_uniform(uint64_t position, uint64_t seed = 0) {
+    uint64_t x = (UINT64_C(0x445241465450524f) ^ seed) + (position + 1) * UINT64_C(0x9e3779b97f4a7c15);
     x = (x ^ (x >> 30)) * UINT64_C(0xbf58476d1ce4e5b9);
     x = (x ^ (x >> 27)) * UINT64_C(0x94d049bb133111eb);
     x ^= x >> 31;
@@ -738,7 +738,7 @@ template<bool Q8, bool SCALED = false, bool TAIL_SCALED = false, bool RANK_COMPE
     float second_scale = 1.0f, float third_scale = 1.0f,
     const float* after_gates = nullptr, uint32_t close_token = UINT32_MAX,
     double* proposal_q = nullptr, uint64_t absolute_start = 0, uint32_t probability_positions = 0,
-    augur_qwen35_proposal_calibration calibration = {}
+    augur_qwen35_proposal_calibration calibration = {}, uint64_t sampling_seed = 0
 ) {
     const uint32_t tid = threadIdx.x;
     const uint32_t candidate = tid / 16, lane = tid % 16;
@@ -840,7 +840,7 @@ template<bool Q8, bool SCALED = false, bool TAIL_SCALED = false, bool RANK_COMPE
                     const double maximum = double(scores[best]);
                     const double temperature = CALIBRATED ? double(calibration.temperature[row]) : 1.0;
                     for (uint32_t i=0; i<16; ++i) { weights[i]=exp((double(scores[i])-maximum)/temperature); total+=weights[i]; }
-                    const double u = augur_qwen35_proposal_uniform(absolute_start + row);
+                    const double u = augur_qwen35_proposal_uniform(absolute_start + row, sampling_seed);
                     double cumulative=0.0; uint32_t pick=best; bool found=false;
                     for (uint32_t i=0; i<16; ++i) {
                         const double q=weights[i]/total; proposal_q[row*16+i]=q;
@@ -1452,7 +1452,7 @@ extern "C" augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_qwen35_dflash_bf16_co
 template<bool CALIBRATED> static augur_cuda_result_v1 augur_qwen35_selector_probability_submit(
     int32_t ordinal, augur_cuda_stream_t stream, const augur_cuda_qwen35_dflash_q8_selector_args_v1* a,
     uint64_t q, uint64_t q_bytes, uint64_t absolute_start, uint32_t positions,
-    const augur_qwen35_proposal_calibration& calibration
+    const augur_qwen35_proposal_calibration& calibration, uint64_t seed = 0
 ) {
     bool calibration_valid = true;
     for (uint32_t row = 1; row < 8; ++row) {
@@ -1487,7 +1487,7 @@ template<bool CALIBRATED> static augur_cuda_result_v1 augur_qwen35_selector_prob
         reinterpret_cast<const void*>(static_cast<uintptr_t>(a->successor)),a->anchor_token,
         reinterpret_cast<float*>(static_cast<uintptr_t>(a->transition_scores)),
         reinterpret_cast<uint32_t*>(static_cast<uintptr_t>(a->path_ids)),1.0f,0.0f,1.0f,1.0f,nullptr,UINT32_MAX,
-        reinterpret_cast<double*>(static_cast<uintptr_t>(q)),absolute_start,positions,calibration);
+        reinterpret_cast<double*>(static_cast<uintptr_t>(q)),absolute_start,positions,calibration,seed);
     e=cudaGetLastError();return augur_qwen35_dflash_acceptance_result(e==cudaSuccess?AUGUR_CUDA_STATUS_OK:AUGUR_CUDA_STATUS_SUBMISSION_FAILURE,e);
 }
 
@@ -1528,4 +1528,22 @@ extern "C" augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_qwen35_dflash_q8_sele
     augur_qwen35_proposal_calibration c = augur_qwen35_uniform_calibration(1.0f,1.0f,1,7);
     for (uint32_t row = 1; row < 8; ++row) { c.temperature[row] = temperatures7[row-1]; c.pair_scale[row] = pair_scales7[row-1]; }
     return augur_qwen35_selector_probability_submit<true>(ordinal,stream,a,q,q_bytes,absolute_start,positions,c);
+}
+
+// Explicit seeded proposal ABI. Legacy entry points retain seed zero byte-for-byte.
+extern "C" augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_qwen35_dflash_q8_selector_probability_submit_v4(
+    int32_t ordinal, augur_cuda_stream_t stream, const augur_cuda_qwen35_dflash_q8_selector_args_v1* a,
+    uint64_t q, uint64_t q_bytes, uint64_t absolute_start, uint32_t positions,
+    const float* temperatures7, const float* pair_scales7, uint64_t seed
+) {
+    if (!temperatures7 || !pair_scales7 || !(pair_scales7[0] == 1.0f))
+        return augur_qwen35_dflash_acceptance_result(AUGUR_CUDA_STATUS_INVALID_ARGUMENT,cudaSuccess);
+    augur_qwen35_proposal_calibration c = augur_qwen35_uniform_calibration(1.0f,1.0f,1,7);
+    bool plain = true;
+    for (uint32_t row = 1; row < 8; ++row) {
+        c.temperature[row] = temperatures7[row-1]; c.pair_scale[row] = pair_scales7[row-1];
+        plain &= c.temperature[row] == 1.0f && c.pair_scale[row] == 1.0f;
+    }
+    if (plain) return augur_qwen35_selector_probability_submit<false>(ordinal,stream,a,q,q_bytes,absolute_start,positions,c,seed);
+    return augur_qwen35_selector_probability_submit<true>(ordinal,stream,a,q,q_bytes,absolute_start,positions,c,seed);
 }

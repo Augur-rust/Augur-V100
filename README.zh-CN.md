@@ -1,6 +1,8 @@
 # Augur
 
-**v0.0.1-alpha** · 首个公开 Alpha 版本。
+**v0.0.2-alpha** · 长对话连续性修复与独立研究源码。
+
+> v0.0.2 Windows 包：先运行根目录 `Verify-Package.cmd`，再运行 `Start-Augur.cmd`。旧原生引擎与新版 Python 桥接分开保存，请勿使用 `native-base/` 内旧入口。详见[验收范围](docs/CHAT_CONTINUITY_RELEASE_20261021.md)。
 
 [English](README.md)
 

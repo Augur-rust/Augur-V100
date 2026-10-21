@@ -184,8 +184,11 @@ extern "C" augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_qwen35_qpn_stage_resi
 namespace {
 bool check_workspace(int32_t d,augur_cuda_stream_t s,const augur_cuda_qwen35_qpn_project_args_v1* a,
                      uint64_t workspace,uint64_t workspace_bytes,bool full) {
-    if(!a||(a->numerical_profile!=6&&a->numerical_profile!=7&&a->numerical_profile!=8)) return false;
+    if(!a||(a->numerical_profile!=6&&a->numerical_profile!=7&&a->numerical_profile!=8
+           &&a->numerical_profile!=9)) return false;
     if(a->numerical_profile==8&&a->split_k!=augur_qwen35_qpn_shape_split_k_v1(a->rows,a->cols)) return false;
+    // Profile9 fixes its own eight-way K partition inside the kernel.
+    if(a->numerical_profile==9&&a->split_k!=8) return false;
     auto base=*a; base.numerical_profile=4;
     // Reuse the common operand-range validation without inheriting its old
     // split admission; the new shape policy above independently admits32.
@@ -210,15 +213,25 @@ extern "C" augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_qwen35_qpn_workspace_
     auto* partials=reinterpret_cast<double*>(workspace); auto* output=reinterpret_cast<float*>(a->output);
     const dim3 grid(a->rows/32*(a->tokens<=4?1:2),a->split_k/4);
     const uint64_t elements=uint64_t(a->rows)*a->tokens;
-    // Keep every non-winning shape/profile/width on the established path.
-    // Workspace admission remains unchanged: the owner is also used by B2..B8.
-    if(a->numerical_profile==8 && a->tokens==1 && a->split_k==16 && a->cols==5120) {
-        if(a->rows==17408 || a->rows==12288) {
-            augur_qwen35_qpn::project_b1_single_cta<1><<<a->rows/32,512,0,s->stream>>>(weight,input,output,a->rows,a->cols,a->tensor_scale);
+    // Profile9 B1: packed hi/lo rows, depth-4 code prefetch, one CTA per tile,
+    // no global partials, whole-slice F32 widening (5.5e-07 rel-L2 against the
+    // F32 matvec over all400 checkpoint shapes). INTRINSICALLY SHAPE-GATED: with
+    // both paths warmed and alternated the kernel wins on17408x5120 (1.09-1.14x,
+    // 544 tiles fill1.9 waves at32 warps/SM) and6144x5120 (1.15x), and LOSES on
+    // 5120x17408, 5120x6144, 10240x5120, 1024x5120 (0.83-0.98x: too few tiles to
+    // fill288 slots) and on12288x5120 (0.87-0.90x, where project_b1_single_cta's
+    // 512 threads at16 warps/SM are enough). The losing shapes keep the schedules
+    // the profile7/8 branch below already selects, so the ratio is the measured
+    // best mix rather than a uniform claim.
+    if(a->numerical_profile==9 && a->tokens==1) {
+        if(a->cols==5120 && (a->rows==17408 || a->rows==6144)) {
+            augur_qwen35_qpn::project_packed_prefetch<8,4,4,false,false>
+                <<<a->rows/32,256,0,s->stream>>>(weight,input,output,a->rows,a->cols,a->tensor_scale);
             return submitted();
         }
-        if(a->rows==6144) {
-            augur_qwen35_qpn::project_b1_single_cta<2><<<a->rows/32,256,0,s->stream>>>(weight,input,output,a->rows,a->cols,a->tensor_scale);
+        if(a->cols==5120 && a->rows==12288) {
+            augur_qwen35_qpn::project_b1_single_cta<1>
+                <<<a->rows/32,512,0,s->stream>>>(weight,input,output,a->rows,a->cols,a->tensor_scale);
             return submitted();
         }
     }

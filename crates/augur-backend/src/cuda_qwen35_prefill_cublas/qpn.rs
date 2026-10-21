@@ -24,6 +24,10 @@ pub enum CudaQwen35QpnScalePlacement {
     ResidualWorkspaceCtaFoldF64 = 7,
     /// Same CTA fold, but immutable shape-fixed SplitK8/16/32.
     ResidualWorkspaceShapeF64 = 8,
+    /// B1 only: packed hi/lo MMA rows, depth-4 code prefetch, whole-slice F32
+    /// accumulation widened once. No global partials. Changes the reduction
+    /// tree, so it is a distinct profile rather than a retune of 7/8.
+    ResidualPackedF32Prefetch = 9,
 }
 
 fn qpn_shape_split_k(rows: u32, cols: u32) -> u32 {
@@ -38,6 +42,8 @@ fn set_qpn_placement(raw: &mut AugurCudaQwen35QpnPrefillArgsV1, placement: CudaQ
         raw.split_k = qpn_shape_split_k(raw.rows, raw.cols);
     } else if raw.numerical_profile == 8 {
         raw.split_k = if raw.rows == 17408 && raw.cols == 5120 {16} else {8};
+    } else if placement == CudaQwen35QpnScalePlacement::ResidualPackedF32Prefetch {
+        raw.split_k = 8;
     }
     raw.numerical_profile = placement as u32;
 }
@@ -318,7 +324,7 @@ impl CudaQwen35QpnFfnProgramV1 {
     /// Immutable original-F32-input FFN width, validated across all three
     /// projections at bind time. This is QPN math, not llama's quantized path.
     pub fn uses_partial_workspace(&self) -> bool {
-        matches!(self.gate.raw.numerical_profile, 6 | 7 | 8)
+        matches!(self.gate.raw.numerical_profile, 6 | 7 | 8 | 9)
     }
     pub fn uses_residual_f32(&self) -> bool {
         self.gate.raw.numerical_profile >= 3

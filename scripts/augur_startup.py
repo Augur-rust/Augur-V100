@@ -78,7 +78,8 @@ def native_owners():
         entry = Entry(); entry.dwSize = ctypes.sizeof(entry)
         ok = k.Process32FirstW(handle, ctypes.byref(entry))
         while ok:
-            if entry.szExeFile.lower() in ('augur_session_jsonl.exe', 'augur_session_http.exe'):
+            if entry.szExeFile.lower() in ('augur_session_jsonl.exe', 'augur_session_http.exe',
+                                           'nerkyor_session_jsonl.exe', 'retained-nerkyor_session_jsonl.exe'):
                 owners.append(int(entry.th32ProcessID))
             ok = k.Process32NextW(handle, ctypes.byref(entry))
         error = ctypes.get_last_error()

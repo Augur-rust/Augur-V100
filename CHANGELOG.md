@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.0.2-alpha — 2026-10-21
+
+- Fix the 129-message rejection across text, tool history and completed text checkpoints. Retain byte/token limits and complete history.
+- Accept direct user steering after complete tool-result groups; advertise the capability and remove the recommended DSH synthetic assistant acknowledgement.
+- Include long-history, tool-boundary reuse, native SSE and bridge-update packaging regressions in public source checks.
+- Publish accumulated Nerkyor research: source-ordered/source-pair QPN numerical work and an explicitly bounded 4K F32-KV no-DFlash session/CLI path. This is research source, not default product admission or a new throughput claim.
+- Windows bridge-update archives preserve the original native package and build/CPU receipts under `native-base/`, with the independently tested Python overlay under `bridge/`. No native rebuild is claimed; the added research kernels are not present in the bundled old native executables.
+- Preserve the existing GitHub documentation changes and exclude private resumes, keys, models, caches, raw sessions and local backups.
+- Validation and migration boundaries: [chat continuity release notes](docs/CHAT_CONTINUITY_RELEASE_20261021.md). DSH original-session interactive testing and independent clean-machine validation remain separate.
+
 ## v0.0.1-alpha — 2026-10-17
 
 - Cooperative stop shared by the launcher, monitor, chat and benchmark client; cancellation waits for the active native generation to retire before the next request.

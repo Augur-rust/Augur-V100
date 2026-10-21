@@ -17,6 +17,8 @@ pub struct Bindings {
     pub decode_attention:String,
     #[serde(default="default_sampling")]
     pub sampling:String,
+    #[serde(default)]
+    pub sampling_seed:u64,
 }
 fn default_sampling()->String {crate::augur_sampling::GREEDY.into()}
 impl Bindings {
@@ -129,10 +131,12 @@ mod tests {
         let greedy=bindings();let mut sampled=greedy.clone();
         sampled.sampling=crate::augur_sampling::PRESET.into();
         sampled.validate().unwrap();assert_ne!(greedy,sampled);
+        let mut reseeded=sampled.clone();reseeded.sampling_seed=1;
+        reseeded.validate().unwrap();assert_ne!(sampled,reseeded);
         sampled.sampling="unknown".into();assert!(sampled.validate().is_err());
     }
     fn bindings()->Bindings {Bindings{producer_sha256:"a".repeat(64),manifest_sha256:"b".repeat(64),profile:PROFILE.into(),
-        draft_config_sha256:"c".repeat(64),draft_weights_sha256:"d".repeat(64),decode_attention:"tile8_b1".into(),sampling:crate::augur_sampling::GREEDY.into()}}
+        draft_config_sha256:"c".repeat(64),draft_weights_sha256:"d".repeat(64),decode_attention:"tile8_b1".into(),sampling:crate::augur_sampling::GREEDY.into(),sampling_seed:0}}
     fn prefix()->Descriptor {Descriptor{schema:SCHEMA.into(),bindings:bindings(),boundary:Boundary::InputPrefix{token_ids:vec![7;PREFIX_BLOCK]}}}
     #[test] fn exact_complete_boundary_only() {
         let p=prefix();let mut ids=p.tokens().to_vec();assert!(p.lookup_prefix(&bindings(),&ids,8).unwrap());

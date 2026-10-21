@@ -167,7 +167,7 @@ pub struct CloseReceipt {
 }
 /// Discards an unpublished, typed cooperative-cancellation turn. This is not a
 /// commit or rollback to old history: only a fresh session may follow it.
-#[cfg(feature = "qwen35-augur-http")]
+#[cfg(any(feature = "qwen35-augur-http", feature = "qwen35-nerkyor-cancel-recovery"))]
 #[derive(Clone, Debug, Serialize)]
 pub struct CancellationDiscardReceipt {
     pub schema: &'static str,
@@ -185,7 +185,7 @@ pub struct CancellationDiscardReceipt {
     pub product_ready: bool,
     pub dflash_enabled: bool,
 }
-#[cfg(feature = "qwen35-augur-http")]
+#[cfg(any(feature = "qwen35-augur-http", feature = "qwen35-nerkyor-cancel-recovery"))]
 #[derive(Clone, Debug, Serialize)]
 pub struct CommittedCancellationDiscard {
     pub receipt: CancellationDiscardReceipt,
@@ -254,6 +254,15 @@ pub(crate) struct SpeculativeStep {pub tokens:Vec<u32>,pub consumed:usize}
 #[cfg(any(test, feature = "qwen35-augur-session"))]
 pub(crate) trait SessionTarget {
     fn profile(&self)->&'static str {PROFILE}
+    // Per-owner hooks: default QUASAR behavior is unchanged. Other model
+    // adapters must supply their own bounded capacity and receipt namespace.
+    fn context_capacity(&self)->Result<usize> {context_capacity()}
+    fn context_output_limit(&self)->Result<usize> {
+        self.context_capacity()?.checked_mul(95).map(|n|n/100).ok_or_else(||"session output capacity overflow".into())
+    }
+    fn turn_receipt_schema(&self)->&'static str {"quasar-token-turn-receipt-v1"}
+    fn close_receipt_schema(&self)->&'static str {"quasar-session-close-v1"}
+    fn cancellation_receipt_schema(&self)->&'static str {"quasar-session-cancellation-discard-v1"}
     fn dflash_enabled(&self)->bool {false}
     fn validate_selector_policy(&self,policy:Option<selector::Policy>,suffix:&[u32],images:bool)->Result<()> {
         selector::validate_request(policy,false,false,suffix,images)
@@ -303,7 +312,7 @@ struct Active {
     snapshot: SessionSnapshot,
     receipt_sha256: String,
 }
-#[cfg(feature = "qwen35-augur-http")]
+#[cfg(any(feature = "qwen35-augur-http", feature = "qwen35-nerkyor-cancel-recovery"))]
 struct CancelledTurn {
     request_id: String,
     session_id: String,
@@ -318,7 +327,7 @@ pub(crate) struct Session<T> {
     poisoned: bool,
     requests: HashSet<String>,
     sessions: HashSet<String>,
-    #[cfg(feature = "qwen35-augur-http")]
+    #[cfg(any(feature = "qwen35-augur-http", feature = "qwen35-nerkyor-cancel-recovery"))]
     cancelled_turn: Option<CancelledTurn>,
 }
 #[cfg(any(test, feature = "qwen35-augur-session"))]
@@ -343,7 +352,7 @@ impl<T: SessionTarget> Session<T> {
             poisoned: false,
             requests: HashSet::new(),
             sessions: HashSet::new(),
-            #[cfg(feature = "qwen35-augur-http")]
+            #[cfg(any(feature = "qwen35-augur-http", feature = "qwen35-nerkyor-cancel-recovery"))]
             cancelled_turn: None,
         })
     }
@@ -363,7 +372,7 @@ impl<T: SessionTarget> Session<T> {
     pub(crate) fn retire(&mut self) -> Result<()> {
         self.poisoned = true;
         self.active = None;
-        #[cfg(feature = "qwen35-augur-http")]
+        #[cfg(any(feature = "qwen35-augur-http", feature = "qwen35-nerkyor-cancel-recovery"))]
         { self.cancelled_turn = None; }
         self.target.drain()
     }
@@ -371,7 +380,7 @@ impl<T: SessionTarget> Session<T> {
     /// flag or an ordinary reset. Unknown errors, failed drains, foreign IDs,
     /// reused IDs, reset/cursor errors and failed persistence never qualify.
     /// Transport still must rotate to a fresh per-turn cancellation token.
-    #[cfg(feature = "qwen35-augur-http")]
+    #[cfg(any(feature = "qwen35-augur-http", feature = "qwen35-nerkyor-cancel-recovery"))]
     pub(crate) fn discard_cancelled_turn(
         &mut self,
         request_id: &str,
@@ -397,7 +406,7 @@ impl<T: SessionTarget> Session<T> {
             self.target.drain()?;
             self.cursor(0)?;
             let receipt = CancellationDiscardReceipt {
-                schema: "quasar-session-cancellation-discard-v1",
+                schema: self.target.cancellation_receipt_schema(),
                 request_id: request_id.into(), cancelled_request_id: cancelled_request_id.into(),
                 session_id: session_id.into(), manifest_sha256: self.manifest_sha256.clone(),
                 cancellation_boundary: boundary, submitted_tokens_before_discard: before,
@@ -457,7 +466,7 @@ impl<T: SessionTarget> Session<T> {
         if !valid_id(&request.request_id)
             || !valid_id(&request.session_id)
             || self.requests.contains(&request.request_id)
-            || !(1..=context_output_limit()?).contains(&request.max_new_tokens)
+            || !(1..=self.target.context_output_limit()?).contains(&request.max_new_tokens)
         {
             return Err("invalid or reused request identity/output budget".into());
         }
@@ -514,8 +523,10 @@ impl<T: SessionTarget> Session<T> {
                 )
             }
         };
-        if !fits_context(exact.len().checked_add(prefix.len())
-            .and_then(|n| n.checked_add(request.max_new_tokens)))?
+        let capacity = self.target.context_capacity()?;
+        if !exact.len().checked_add(prefix.len())
+            .and_then(|n| n.checked_add(request.max_new_tokens))
+            .is_some_and(|n| n <= capacity)
         {
             return Err("selected context budget exceeded; no history truncation".into());
         }
@@ -601,7 +612,7 @@ impl<T: SessionTarget> Session<T> {
                 image_input_sha256: image_identity.clone(),
             };
             let receipt = TurnReceipt {
-                schema: "quasar-token-turn-receipt-v1",
+                schema: self.target.turn_receipt_schema(),
                 request_id: request.request_id.clone(),
                 previous_receipt_sha256: previous,
                 session: snapshot,
@@ -642,7 +653,7 @@ impl<T: SessionTarget> Session<T> {
                 if let Err(drain) = self.retire() {
                     return Err(format!("{error}; Augur retirement drain failed: {drain}").into());
                 }
-                #[cfg(feature = "qwen35-augur-http")]
+                #[cfg(any(feature = "qwen35-augur-http", feature = "qwen35-nerkyor-cancel-recovery"))]
                 if !persistence_started && cancel.is_requested() {
                     if let Some(cause) = error.downcast_ref::<crate::session_cancellation::SessionCancellationRequested>() {
                         self.cancelled_turn = Some(CancelledTurn {
@@ -674,7 +685,7 @@ impl<T: SessionTarget> Session<T> {
             return Err("invalid close identity/revision".into());
         }
         let receipt = CloseReceipt {
-            schema: "quasar-session-close-v1",
+            schema: self.target.close_receipt_schema(),
             request_id: request_id.into(),
             session_id: session_id.into(),
             revision,
@@ -720,3 +731,6 @@ pub mod manifest;
 
 #[cfg(any(test, feature = "qwen35-augur-session"))]
 pub mod checkpoint;
+
+#[cfg(test)]
+mod model_contract_tests;

@@ -30,7 +30,7 @@
     "maxTokensField": "max_completion_tokens",
     "thinkingFormat": "qwen",
     "requiresReasoningContentOnAssistantMessages": false,
-    "requiresAssistantAfterToolResult": true,
+    "requiresAssistantAfterToolResult": false,
     "requiresToolResultName": false
   },
   "reasoning": "off",

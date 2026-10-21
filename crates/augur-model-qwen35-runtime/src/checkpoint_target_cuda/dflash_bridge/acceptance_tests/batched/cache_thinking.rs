@@ -79,7 +79,7 @@ fn cached_bilingual_fixed_b8() {
         profile: crate::augur_session::DFLASH_B8_PROFILE.into(),
         draft_config_sha256: std::env::var("AUGUR_DRAFT_CONFIG_SHA256").unwrap(),
         draft_weights_sha256: std::env::var("AUGUR_DRAFT_SHA256").unwrap(),
-        decode_attention: probes["target_attention_mode"].as_str().unwrap().into(),sampling:crate::augur_sampling::GREEDY.into(),
+        decode_attention: probes["target_attention_mode"].as_str().unwrap().into(),sampling:crate::augur_sampling::GREEDY.into(),sampling_seed:0,
     };
     bindings.validate().unwrap();
     let before = cuda_device_allocation_snapshot();

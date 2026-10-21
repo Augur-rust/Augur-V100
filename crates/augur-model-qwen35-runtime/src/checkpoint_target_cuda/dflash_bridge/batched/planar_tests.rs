@@ -68,7 +68,7 @@ fn planar_owner_prefill_decode_b8_and_checkpoint() {
     let d=Descriptor{schema:session::checkpoint::SCHEMA.into(),
         bindings:Bindings{producer_sha256:session::digest(&fs::read(std::env::current_exe().unwrap()).unwrap()),
             manifest_sha256:session::digest(&manifest_raw),profile:session::PROFILE.into(),
-            draft_config_sha256:"a".repeat(64),draft_weights_sha256:"b".repeat(64),decode_attention:"gqa8_planar".into(),sampling:crate::augur_sampling::GREEDY.into()},
+            draft_config_sha256:"a".repeat(64),draft_weights_sha256:"b".repeat(64),decode_attention:"gqa8_planar".into(),sampling:crate::augur_sampling::GREEDY.into(),sampling_seed:0},
         boundary:Boundary::Session{snapshot:session::SessionSnapshot{profile:session::PROFILE.into(),
             manifest_sha256:session::digest(&manifest_raw),session_id:"planar-owner-structural".into(),revision:1,
             consumed_input_sha256:session::digest(&history.iter().flat_map(|id| id.to_le_bytes()).collect::<Vec<_>>()),consumed_token_ids:history,

@@ -188,6 +188,20 @@ impl CudaNvfp4Sm70F32MatvecArgsV1 {
         CudaRuntimeError::from_result("cuda_nvfp4_sm70_f32_matvec_submit_v1", result)
     }
 
+    /// Separate large-matrix research schedule. Original F32 pair products,
+    /// contiguous SplitK8 partitions, ordered F64 fold; no HBM scratch.
+    pub fn submit_large_split8_for_plan(&self, stream: &OwnedCudaStream) -> Result<(), CudaRuntimeError> {
+        self.validate_stream(stream)?;
+        if self.raw.rows < 1024 || self.raw.rows % 32 != 0 || self.raw.cols < 5120 || self.raw.cols % 512 != 0 {
+            return Err(validation(CudaRuntimeErrorKind::InvalidDimensions));
+        }
+        // SAFETY: checked original descriptors and retained owners; the native
+        // entry independently checks shape, exact extents and disjointness.
+        let result = unsafe { augur_cuda_sys::augur_cuda_nvfp4_sm70_large_split8_submit_v1(
+            stream.device_ordinal(), stream.raw()?, &self.raw) };
+        CudaRuntimeError::from_result("cuda_nvfp4_sm70_large_split8_submit_v1", result)
+    }
+
     /// Explicit 48x5120-only small-gate contract: unchanged F32 pair expression,
     /// consecutive SplitK16 F64 partials, ordered split fold, then warp fold.
     /// The F64 addition order differs from the original scalar entry point.

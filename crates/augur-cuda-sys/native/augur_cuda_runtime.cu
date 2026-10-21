@@ -4420,6 +4420,8 @@ augur_cuda_p0_prefill_v22_bf16_batch4_submit_v1(
 }
 #endif
 
+#include "nerkyor_bf16_gate_pair_f32_cta.cuh"
+
 extern "C" augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_bf16_f32_matvec_v1(
     int32_t ordinal, augur_cuda_stream_t stream, const augur_cuda_bf16_f32_matvec_args_v1* args
 ) {

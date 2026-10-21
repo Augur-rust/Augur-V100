@@ -70,7 +70,7 @@ impl Manager {
         if root.is_none() && prefix.is_none() && !prompt_end{return Ok(None);}
         if let Some(n)=prefix{contract::validate_prefix_tokens(n)?;}
         let bindings=Bindings{producer_sha256:sha_file(&std::env::current_exe()?)?,manifest_sha256:manifest.into(),profile:session::requested_profile()?.into(),
-            draft_config_sha256:std::env::var("AUGUR_DRAFT_CONFIG_SHA256")?,draft_weights_sha256:std::env::var("AUGUR_DRAFT_SHA256")?,decode_attention:attention.into(),sampling:crate::augur_sampling::Mode::from_env()?.label().into()};
+            draft_config_sha256:std::env::var("AUGUR_DRAFT_CONFIG_SHA256")?,draft_weights_sha256:std::env::var("AUGUR_DRAFT_SHA256")?,decode_attention:attention.into(),sampling:crate::augur_sampling::Mode::from_env()?.label().into(),sampling_seed:crate::augur_sampling::process_seed()?};
         bindings.validate()?;
         let store=root.map(|p|HttpCheckpointStore::open(&PathBuf::from(p),StoreBudget{max_checkpoints:8,max_reserved_bytes:PREFIX_BYTES})).transpose()?;
         let prefix=if prefix.is_some() || prompt_end {

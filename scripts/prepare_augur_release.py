@@ -26,6 +26,10 @@ PUBLIC_SCRIPTS = {
     'prepare_augur_windows_notices.py', 'export_augur_windows_source.py', 'audit_augur_windows_dependencies.py',
     'prepare_augur_release.py', 'prepare_augur_notices.py', 'prepare_augur_source_archive.py',
     'qwen35_chat.py', 'qwen35_tools.py', 'qwen35_persistence.py',
+    'test_qwen35_long_history.py',
+    'augur_bridge_entry.py', 'package_augur_bridge_update.py', 'test_augur_bridge_update.py',
+    'nerkyor_chat.py', 'nerkyor_protocol.py', 'nerkyor_api.py', 'nerkyor_recovery.py',
+    'test_nerkyor_chat.py', 'test_nerkyor_api.py', 'test_nerkyor_recovery.py', 'test_nerkyor_no_dflash.py',
     'test_augur_api.py', 'test_augur_vision.py', 'test_augur_product.py', 'test_qwen35_api.py',
     'test_qwen35_chat.py', 'test_qwen35_persistence.py', 'test_qwen35_tools.py'}
 REPOSITORY_INPUTS = {
@@ -43,6 +47,8 @@ MODEL_CARD_INPUTS = {
 }
 SOURCE_DOCUMENTS = {
     'docs/README.md', 'docs/REPOSITORY_LAYOUT.md', 'docs/RELEASING.md',
+    'docs/MODEL_NERKYOR_NO_DFLASH_ENGINE.zh-CN.md',
+    'docs/CHAT_CONTINUITY_RELEASE_20261021.md',
     'docs/public/AUGUR_RELEASE_ACCEPTANCE_20261015.json',
     'docs/public/AUGUR_SAMPLING_SPEED_20261015.json',
     'docs/AUGUR_WINDOWS_USER_GUIDE.zh-CN.md',
@@ -73,6 +79,11 @@ DSH_INPUTS = {
     *{'integrations/dsh/reasoning-recovery/'+name for name in ('package.json','index.mjs','single-flight.mjs','test.mjs','single-flight.test.mjs')},
 }
 BENCH_INPUTS = {'bench/english-thinking-14.json', 'bench/scenarios.json'}
+NATIVE_FIXTURES = {
+    'crates/augur-model-qwen35-runtime/tests/fixtures/nerkyor-tokenizer-reference.json',
+    'crates/augur-model-qwen35/tests/fixtures/nerkyor-w4a16-config.json',
+}
+
 MONITOR_ASSETS = {'scripts/augur_monitor_web/'+name for name in ('index.html', 'app.js', 'i18n.js', 'style.css')}
 REQUIRED_SOURCE = REPOSITORY_INPUTS | TOP | SOURCE_DOCUMENTS | MODEL_CARD_INPUTS | DSH_INPUTS | MONITOR_ASSETS | BENCH_INPUTS | {
     'scripts/augur_product.py', 'scripts/run_augur_windows.py',
@@ -110,7 +121,7 @@ def selected(name):
     parts = PurePosixPath(name).parts
     if any(part.startswith('.') or part in ('target', 'node_modules', '__pycache__') for part in parts):
         return False
-    if name in TOP | SOURCE_DOCUMENTS | MODEL_CARD_INPUTS | MONITOR_ASSETS | BENCH_INPUTS:
+    if name in TOP | SOURCE_DOCUMENTS | MODEL_CARD_INPUTS | MONITOR_ASSETS | BENCH_INPUTS | NATIVE_FIXTURES:
         return True
     if len(parts) == 2 and parts[0] == 'scripts' and parts[1] in PUBLIC_SCRIPTS:
         return True

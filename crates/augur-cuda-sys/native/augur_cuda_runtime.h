@@ -1707,6 +1707,13 @@ augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_bf16_f32_matvec_submit_v1(
     int32_t ordinal, augur_cuda_stream_t stream,
     const augur_cuda_bf16_f32_matvec_args_v1* args
 );
+/* Explicit SM70 research B1 pair, original BF16 [48,5120] each; exact
+   extents, shared input, disjoint retained operands, no allocation or drain. */
+augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_nerkyor_bf16_gate_pair_f32_cta_submit_v1(
+    int32_t ordinal, augur_cuda_stream_t stream,
+    const augur_cuda_bf16_f32_matvec_args_v1* a,
+    const augur_cuda_bf16_f32_matvec_args_v1* b
+);
 /* Canonical warp-row arithmetic, independent token-major rows, tokens1..512.
    All extents are exact and disjoint; no allocation or synchronization. */
 augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_bf16_f32_matvec_rows_submit_v1(
@@ -1884,6 +1891,21 @@ augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_nvfp4_sm70_f32_matvec_submit_v1(
     const augur_cuda_nvfp4_sm70_f32_matvec_args_v1* args
 );
 
+/* QPN physical planes only, source F32 pairs with F64 fold. mode=0: CTA,
+ * splits=1/4/8/16 with null workspace; mode=1: parts/merge, splits=4/8/16/32,
+ * workspace exactly N*splits*sizeof(double). mode=2: source-exact lane/tree
+ * order, splits=4, null/zero workspace. Separate from all GGML entries. */
+augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_nvfp4_sm70_qpn_source_pair_submit_v1(
+    int32_t, augur_cuda_stream_t, const augur_cuda_nvfp4_sm70_f32_matvec_args_v1*,
+    uint32_t mode, uint32_t splits, uint64_t partial, uint64_t partial_bytes
+);
+
+/* Independent large source-F32 pair / SplitK8 F64 research schedule.
+ * N>=1024 and N%32==0; K>=5120 and K%512==0. No scalar-bit-exact promise. */
+augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_nvfp4_sm70_large_split8_submit_v1(
+    int32_t ordinal, augur_cuda_stream_t stream,
+    const augur_cuda_nvfp4_sm70_f32_matvec_args_v1* args
+);
 /* Independent 48x5120-only F32-pair, SplitK16 F64 contract; not scalar-bit-exact. */
 augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_nvfp4_sm70_small_gate_split16_submit_v1(
     int32_t ordinal, augur_cuda_stream_t stream,
@@ -2836,6 +2858,10 @@ augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_qwen35_prefill_linear_chunk_prec
     augur_cuda_stream_t stream,
     const augur_cuda_qwen35_prefill_linear_chunk_args_v1* args
 );
+/* Separate research ABI; never changes legacy QUASAR prefill math. */
+augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_nerkyor_prefill_full_attention_canonical_submit_v1(
+    int32_t ordinal, augur_cuda_stream_t stream,
+    const augur_cuda_qwen35_prefill_full_attention_args_v1* args);
 augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_qwen35_prefill_full_attention_preflight_v1(
     int32_t ordinal,
     augur_cuda_stream_t stream,
@@ -4889,6 +4915,13 @@ augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_qwen35_dflash_q8_selector_probab
     const augur_cuda_qwen35_dflash_q8_selector_args_v1* args,
     uint64_t q, uint64_t q_bytes, uint64_t absolute_start, uint32_t positions,
     const float* temperatures7, const float* pair_scales7
+);
+// v4: explicit process seed, XORed into the proposal purpose domain. Seed 0 replays v1/v3.
+augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_qwen35_dflash_q8_selector_probability_submit_v4(
+    int32_t ordinal, augur_cuda_stream_t stream,
+    const augur_cuda_qwen35_dflash_q8_selector_args_v1* args,
+    uint64_t q, uint64_t q_bytes, uint64_t absolute_start, uint32_t positions,
+    const float* temperatures7, const float* pair_scales7, uint64_t seed
 );
 // Opt-in rank compensation: keep transition scale at 1 and soften top-1 unary bias.
 augur_cuda_result_v1 AUGUR_CUDA_CALL augur_cuda_qwen35_dflash_q8_selector_rank_comp_submit_v1(

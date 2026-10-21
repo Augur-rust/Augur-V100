@@ -74,7 +74,7 @@ fn cache_manager_full_state_and_wall() {
     assert!(cases[3].token_ids.len()<4352);
     let bindings=Bindings{producer_sha256:sha_file(&std::env::current_exe().unwrap()).unwrap(),manifest_sha256:session::digest(&manifest_raw),
         profile:session::PROFILE.into(),draft_config_sha256:session::digest(b"TEST-ONLY-NO-DRAFT-CONFIG"),
-        draft_weights_sha256:session::digest(b"TEST-ONLY-NO-DRAFT-WEIGHTS"),decode_attention:"gqa8_planar".into(),sampling:crate::augur_sampling::GREEDY.into()};
+        draft_weights_sha256:session::digest(b"TEST-ONLY-NO-DRAFT-WEIGHTS"),decode_attention:"gqa8_planar".into(),sampling:crate::augur_sampling::GREEDY.into(),sampling_seed:0};
     bindings.validate().unwrap();let before=cuda_device_allocation_snapshot();let started=Instant::now();
     let mut t=open_target(identity.clone());let load_s=started.elapsed().as_secs_f64();let cancel=SessionCancellationToken::new();
     let mut references=Vec::new();let mut reference_bill=Vec::new();
@@ -122,7 +122,7 @@ fn cache_manager_full_state_and_wall() {
 fn marker_bindings()->Bindings {
     Bindings{producer_sha256:session::digest(b"test-build"),manifest_sha256:session::digest(b"test-model"),
         profile:session::PROFILE.into(),draft_config_sha256:session::digest(b"test-draft-config"),
-        draft_weights_sha256:session::digest(b"test-draft-weights"),decode_attention:"gqa8_planar".into(),sampling:crate::augur_sampling::GREEDY.into()}
+        draft_weights_sha256:session::digest(b"test-draft-weights"),decode_attention:"gqa8_planar".into(),sampling:crate::augur_sampling::GREEDY.into(),sampling_seed:0}
 }
 #[test]
 fn persistent_namespace_binds_every_live_identity_field() {
@@ -247,7 +247,7 @@ fn late_restore_failure_resets_uncommitted_physical_kv() {
     let ids:Vec<u32>=serde_json::from_value(case["token_ids"].clone()).unwrap();assert_eq!(ids.len(),32760);
     let b=Bindings{producer_sha256:sha_file(&std::env::current_exe().unwrap()).unwrap(),manifest_sha256:session::digest(&manifest_raw),
         profile:session::PROFILE.into(),draft_config_sha256:std::env::var("AUGUR_DRAFT_CONFIG_SHA256").unwrap(),
-        draft_weights_sha256:std::env::var("AUGUR_DRAFT_SHA256").unwrap(),decode_attention:"gqa8_planar".into(),sampling:crate::augur_sampling::GREEDY.into()};b.validate().unwrap();
+        draft_weights_sha256:std::env::var("AUGUR_DRAFT_SHA256").unwrap(),decode_attention:"gqa8_planar".into(),sampling:crate::augur_sampling::GREEDY.into(),sampling_seed:0};b.validate().unwrap();
     let before=cuda_device_allocation_snapshot();let mut target=open_target(identity);
     session::SessionTarget::prefill(&mut target,&ids,&SessionCancellationToken::new()).unwrap();
     let d=descriptor(&b,&ids);let reference=target.checkpoint_test_state_sha256(&d).unwrap();

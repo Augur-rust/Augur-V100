@@ -1,6 +1,9 @@
 # Augur
 
-**v0.0.1-alpha** · First public alpha release.
+**v0.0.2-alpha** · Chat-continuity fix and separately scoped research source.
+
+> v0.0.2 Windows: use `Verify-Package.cmd`, then `Start-Augur.cmd` at the archive root. The unchanged native base is separate from the updated Python bridge; do not start the old entry inside `native-base/`. See [validation scope](docs/CHAT_CONTINUITY_RELEASE_20261021.md).
+
 
 [简体中文](README.zh-CN.md)
 

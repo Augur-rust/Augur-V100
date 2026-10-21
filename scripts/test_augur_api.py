@@ -142,6 +142,20 @@ class Tests(unittest.TestCase):
         with self.assertRaises(C.ProtocolError):
             self.controller.check_health(dict(health, sampling=dict(speculative, rng='splitmix64_absolute_position_v1')))
 
+    def test_process_seed_is_admitted_only_when_native_executes_it(self):
+        sampling=dict(Q.SAMPLING_VALUES, seed=2, preset=Q.SAMPLING_PRESET, greedy=False,
+                      verification='sparse_p_over_q_positive_residual_v1',
+                      rng='splitmix64_absolute_position_independent_purpose_domains_v1')
+        self.controller.health=self.controller.check_health(dict(self.backend.health(),sampling=sampling))
+        request=dict(model='augur-test',messages=[dict(role='user',content='Hi')])
+        self.assertEqual(self.controller.validate_request(dict(request,seed=2))['sampling']['seed'],2)
+        self.assertEqual(self.controller.validate_request(request)['sampling']['seed'],2)
+        for value in (0,1,True,2.0):
+            with self.assertRaises(A.ApiError):self.controller.validate_request(dict(request,seed=value))
+        for value in (-1,1<<64,True,2.0,None):
+            with self.assertRaises(C.ProtocolError):
+                self.controller.check_health(dict(self.backend.health(),sampling=dict(sampling,seed=value)))
+
     def test_prefix_cache_usage_uses_committed_match_not_capture(self):
         count=len(self.backend.template.encode(self.backend.template.render([dict(role='user',content='Hi')])))
         for matched in (0, 7, count):
@@ -361,6 +375,32 @@ class Tests(unittest.TestCase):
         with self.assertRaises(C.ProtocolError):
             self.controller.complete(payload,lambda *a:None,emitted.append,lambda *a:self.fail('committed'),lambda abort:lambda:None)
         self.assertEqual(emitted,[])
+
+    def test_steering_after_tools_appends_without_reset_or_fake_acknowledgement(self):
+        from test_qwen35_tools import ToolTemplate, TOOLS, RAW
+        self.backend.template.render = ToolTemplate.render.__get__(self.backend.template)
+        self.backend.outputs = self.backend.template.encode(RAW)
+        payload = dict(model='augur-test', messages=[dict(role='user', content='Lookup alpha')],
+                       tools=TOOLS, max_tokens=512)
+        response = {}
+        self.controller.complete(payload, lambda *a: None, lambda *a: None,
+            lambda meta, r, *a: response.update(calls=r['response_tool_calls']), lambda abort: lambda: None)
+        history = self.controller.current.history.copy()
+        session = self.controller.current.session_id
+        payload['messages'].extend([
+            dict(role='assistant', content='', tool_calls=response['calls']),
+            dict(role='tool', tool_call_id=response['calls'][0]['id'], content='Found alpha'),
+            dict(role='user', content='Keep the progress and apply this new constraint')])
+        self.backend.outputs = self.backend.template.encode('OK')
+        self.controller.complete(payload, lambda meta, r: response.update(mode=meta['session_mode']),
+            lambda *a: None, lambda *a: None, lambda abort: lambda: None)
+        self.assertEqual(response['mode'], 'exact_history_append')
+        self.assertEqual(self.controller.current.session_id, session)
+        self.assertEqual(self.controller.current.history[:len(history)], history)
+        self.assertEqual(self.backend.closes, 0)
+        self.assertEqual([m['role'] for m in self.controller.current.messages[-3:]], ['tool', 'user', 'assistant'])
+        self.assertFalse(any(m['content'] == 'I have processed the tool results.'
+                             for m in self.controller.current.messages))
 
     def test_token_digest_preserves_little_endian_native_ledger_contract(self):
         self.assertEqual(Q.token_sha([]), 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')

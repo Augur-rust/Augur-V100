@@ -262,3 +262,25 @@ test('interface defaults to Simplified Chinese and follows the launcher choice',
   assert.equal(later.get('chat-title').textContent, '新对话');
   assert.equal(later.storage.get('augur-lang'), 'zh-CN');
 });
+
+test('bounded Nerkyor capabilities disable controls and omit unsupported parameters', async () => {
+  const a = await app(), requests = [];
+  a.get('budget').dataset = {};
+  a.run(`$('tools').checked=true; $('thinking').checked=true; active.tools=true; active.thinking=true;
+    applyCapabilities({vision_forward:false,ui:{tools:false,thinking:false,thinking_parameters:false,label:'Nerkyor',notice:'512 tokens; cancellation retires owner'}});
+    applyOutputCeiling({initial_max_output_limit:486}); setBusy();`);
+  for (const id of ['tools', 'thinking', 'thinking-language', 'attach']) assert.equal(a.get(id).disabled, true, id);
+  assert.equal(a.get('budget').value, 486);
+  assert.equal(a.get('profile-notice').hidden, false);
+  assert.equal(a.get('brand-model').textContent, 'Nerkyor');
+  a.context.fetch = async (_, options) => { requests.push(JSON.parse(options.body)); return sse([
+    {choices:[{delta:{content:'42'}}]}, {choices:[{finish_reason:'stop'}],usage:{completion_tokens:2}}
+  ]); };
+  a.run("$('prompt').value='test';");
+  await a.run('send({preventDefault(){}})');
+  assert.equal(requests.length,1);
+  for (const key of ['enable_thinking','thinking_language','tools','parallel_tool_calls','seed']) assert.equal(key in requests[0],false,key);
+  assert.equal(requests[0].max_completion_tokens,486);
+  a.run('newChat(); selectChat(chats[1]);');
+  assert.equal(a.get('thinking').checked,false); assert.equal(a.get('tools').checked,false);
+});

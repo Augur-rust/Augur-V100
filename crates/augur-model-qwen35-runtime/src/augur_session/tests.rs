@@ -84,7 +84,7 @@ impl SessionTarget for Fake {
         Ok(())
     }
 }
-#[cfg(feature = "qwen35-augur-http")]
+#[cfg(any(feature = "qwen35-augur-http", feature = "qwen35-nerkyor-cancel-recovery"))]
 mod cancellation_discard;
 #[cfg(feature = "qwen35-augur-vision")]
 mod cancellation_gpu_fallback;

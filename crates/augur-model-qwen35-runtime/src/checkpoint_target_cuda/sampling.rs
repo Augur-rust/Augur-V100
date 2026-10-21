@@ -37,7 +37,7 @@ impl Sampler {
         (0..self.rows).map(|r| {
             let position=first_position.checked_add(r).ok_or("audit position overflow")?;
             let row_ids=&ids[r*TOP_K..(r+1)*TOP_K];let row_logits=&logits[r*TOP_K..(r+1)*TOP_K];
-            let u=augur_sampling::uniform(0,position);
+            let u=augur_sampling::process_uniform(0,position)?;
             let selected=augur_sampling::select(row_ids,row_logits,u)?;
             Ok(serde_json::json!({"absolute_position":position,"ids":row_ids,"logits":row_logits,
                 "uniform":u,"selected":selected.id,"top1":selected.top1}))
@@ -52,7 +52,7 @@ impl Sampler {
             let position=first_position.checked_add(r).ok_or("probability position overflow")?;
             let row_ids=&ids[r*TOP_K..(r+1)*TOP_K];let row_logits=&logits[r*TOP_K..(r+1)*TOP_K];
             Ok(if r+1<self.rows {crate::augur_speculative_sampling::verify(row_ids,row_logits,q,r+1,path[r+1],position)?}
-                else {augur_sampling::select(row_ids,row_logits,augur_sampling::uniform(crate::augur_speculative_sampling::BONUS,position))?})
+                else {augur_sampling::select(row_ids,row_logits,augur_sampling::process_uniform(crate::augur_speculative_sampling::BONUS,position)?)?})
         }).collect()
     }
     /// Block verification over the same retained rows; returns accepted draft count and selections.
@@ -69,7 +69,7 @@ impl Sampler {
         let ids:Vec<_>=raw[..bytes].chunks_exact(4).map(|b|u32::from_le_bytes(b.try_into().unwrap())).collect();
         let logits:Vec<_>=raw[bytes..].chunks_exact(4).map(|b|f32::from_le_bytes(b.try_into().unwrap())).collect();
         (0..self.rows).map(|r|Ok(augur_sampling::select(&ids[r*TOP_K..(r+1)*TOP_K],&logits[r*TOP_K..(r+1)*TOP_K],
-            augur_sampling::uniform(0,first_position.checked_add(r).ok_or("sampling position overflow")?))?)).collect()
+            augur_sampling::process_uniform(0,first_position.checked_add(r).ok_or("sampling position overflow")?)?)?)).collect()
     }
 }
 impl Drop for Sampler {fn drop(&mut self){let _=self.stream.synchronize();}}

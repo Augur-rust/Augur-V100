@@ -16,6 +16,10 @@ pub enum CheckpointNvfp4Scale {
         weight_scale_2: f32,
         input_scale: f32,
     },
+    /// Weight-only export: there is intentionally no activation calibration.
+    ModelOptW4A16 {
+        weight_scale_2: f32,
+    },
 }
 
 impl CheckpointNvfp4Scale {
@@ -24,13 +28,14 @@ impl CheckpointNvfp4Scale {
             Self::CompressedTensors {
                 weight_global_scale,
                 input_global_scale,
-            } => (weight_global_scale, input_global_scale),
+            } => (weight_global_scale, Some(input_global_scale)),
             Self::ModelOpt {
                 weight_scale_2,
                 input_scale,
-            } => (weight_scale_2, input_scale),
+            } => (weight_scale_2, Some(input_scale)),
+            Self::ModelOptW4A16 { weight_scale_2 } => (weight_scale_2, None),
         };
-        if !w.is_finite() || w <= 0.0 || !x.is_finite() || x <= 0.0 {
+        if !w.is_finite() || w <= 0.0 || x.is_some_and(|v| !v.is_finite() || v <= 0.0) {
             return Err(Qwen35Error::invalid(
                 "checkpoint.scale",
                 "expected finite positive scalars",
@@ -46,7 +51,8 @@ impl CheckpointNvfp4Scale {
                 weight_global_scale,
                 ..
             } => block_value / f64::from(weight_global_scale),
-            Self::ModelOpt { weight_scale_2, .. } => block_value * f64::from(weight_scale_2),
+            Self::ModelOpt { weight_scale_2, .. }
+            | Self::ModelOptW4A16 { weight_scale_2 } => block_value * f64::from(weight_scale_2),
         }
     }
 }
@@ -256,6 +262,19 @@ mod tests {
             m.decode_f64_into(&mut values).unwrap();
             assert_eq!(&values[..2], &expected);
             assert_eq!(m.global_scale(), profile);
+        }
+    }
+    #[test]
+    fn w4a16_has_no_activation_scale_and_multiplies_not_divides() {
+        let scale = CheckpointNvfp4Scale::ModelOptW4A16 { weight_scale_2: 0.125 };
+        let packed = [0xFA; 8]; // -1, -6 in low/high order.
+        let m = CheckpointNvfp4Matrix::new(1, 16, &packed, &[0x40], scale).unwrap(); // block scale 2.
+        let mut values = [0.0; 16]; m.decode_f64_into(&mut values).unwrap();
+        assert_eq!(&values[..2], &[-0.25, -1.5]);
+        assert_eq!(m.global_scale(), scale);
+        for w in [0.0, -1.0, f32::INFINITY, f32::NEG_INFINITY, f32::NAN] {
+            assert!(CheckpointNvfp4Matrix::new(1, 16, &packed, &[0x40],
+                CheckpointNvfp4Scale::ModelOptW4A16 { weight_scale_2: w }).is_err());
         }
     }
     #[test]

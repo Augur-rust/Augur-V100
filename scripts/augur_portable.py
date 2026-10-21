@@ -24,8 +24,10 @@ def activate(root):
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__,add_help=False)
     parser.add_argument('action',choices=('engine','monitor','stop','verify','configure'))
+    parser.add_argument('--runtime-root', type=Path, help='explicit unchanged native/runtime package for a separate bridge')
     options,remaining=parser.parse_known_args(argv)
-    root=activate(Path(__file__).resolve().parents[2])
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    root=activate(options.runtime_root or Path(__file__).resolve().parents[2])
     if options.action=='verify':
         import json
         from prepare_augur_windows_runtime import validate

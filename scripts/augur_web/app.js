@@ -7,6 +7,7 @@ let key = new URLSearchParams(location.hash.slice(1)).get('key') || store?.getIt
 if (key) store?.setItem('augur-api-key', key);
 history.replaceState(null, '', location.pathname);
 let model = 'quasar-27b', active = null, request = null, visionAvailable = false;
+let toolsAvailable = true, thinkingAvailable = true, thinkingParametersAvailable = true;
 const chats = [], tools = [{type: 'function', function: {name: 'local_time', description: 'Read the local client date and time.', parameters: {type: 'object', properties: {}, additionalProperties: false}}}];
 const icons = () => lucide.createIcons();
 const headers = () => ({'Content-Type': 'application/json', Authorization: 'Bearer ' + key});
@@ -22,7 +23,10 @@ function setBusy(busy = !!request) {
   for (const id of ['new-chat', 'detail', 'budget', 'prompt', 'settings-button', 'export', 'files', 'thinking', 'thinking-language']) $(id).disabled = busy;
   $('send').disabled = busy || active.loadingImages;
   $('attach').disabled = busy || active.loadingImages || !visionAvailable;
-  $('tools').disabled = busy || active.messages.length > 0;
+  $('detail').disabled = busy || !visionAvailable;
+  $('tools').disabled = busy || active.messages.length > 0 || !toolsAvailable;
+  $('thinking').disabled = busy || !thinkingAvailable;
+  $('thinking-language').disabled = busy || !thinkingAvailable;
   $('stop').hidden = !busy; $('send').hidden = busy; $('status').textContent = T(busy ? 'generating' : 'ready');
 }
 function addMessage(role, text = '', images = []) {
@@ -64,7 +68,7 @@ function renderHistory() {
 function selectChat(chat) {
   if (request) return; saveDraft(); active = chat;
   $('chat-title').textContent = chatTitle(chat); $('bill').textContent = chat.bill; showError(chat.error);
-  $('tools').checked = chat.tools; $('thinking').checked = chat.thinking; $('thinking-language').value = chat.thinkingLanguage; $('prompt').value = chat.draft.prompt; $('detail').value = chat.draft.detail;
+  $('tools').checked = chat.tools && toolsAvailable; $('thinking').checked = chat.thinking && thinkingAvailable; $('thinking-language').value = chat.thinkingLanguage; $('prompt').value = chat.draft.prompt; $('detail').value = chat.draft.detail;
   renderHistory(); renderAttachments(); setBusy();
   document.body.classList.remove('sidebar-open'); refreshChats();
 }
@@ -86,8 +90,21 @@ function addToolResult(view, result) {
   const node = document.createElement('div'); node.className = 'tool-result'; node.textContent = 'local_time ' + result; view.node.append(node);
 }
 async function connect() {
-  try { const response = await fetch('/v1/models', {headers: headers()}); if (response.status === 401 || response.status === 403) { store?.removeItem('augur-api-key'); throw new Error(T('not_connected')); } if (!response.ok) throw new Error(T('unavailable', {s: response.status})); const value = await response.json(); model = value.data[0].id; $('model').textContent = model; const caps = await fetch('/cq/capabilities', {headers: headers()}).then(r => r.json()); visionAvailable = !!caps.vision_forward; applyOutputCeiling(caps.native_limits); setBusy(); showError(active.error); }
+  try { const response = await fetch('/v1/models', {headers: headers()}); if (response.status === 401 || response.status === 403) { store?.removeItem('augur-api-key'); throw new Error(T('not_connected')); } if (!response.ok) throw new Error(T('unavailable', {s: response.status})); const value = await response.json(); model = value.data[0].id; $('model').textContent = model; const caps = await fetch('/cq/capabilities', {headers: headers()}).then(r => r.json()); applyCapabilities(caps); applyOutputCeiling(caps.native_limits); setBusy(); showError(active.error); }
   catch (error) { $('status').textContent = T('disconnected'); showError(error); }
+}
+function applyCapabilities(caps) {
+  visionAvailable = !!caps.vision_forward;
+  // Older QUASAR servers retain their existing UI policy. An independent
+  // profile may explicitly disable controls and omit unsupported parameters.
+  toolsAvailable = caps.ui?.tools !== false;
+  thinkingAvailable = caps.ui?.thinking !== false;
+  thinkingParametersAvailable = caps.ui?.thinking_parameters !== false;
+  if (!toolsAvailable) { $('tools').checked = false; for (const chat of chats) chat.tools = false; }
+  if (!thinkingAvailable) { $('thinking').checked = false; for (const chat of chats) chat.thinking = false; }
+  $('brand-model').textContent = caps.ui?.label || model;
+  $('profile-notice').textContent = caps.ui?.notice || '';
+  $('profile-notice').hidden = !caps.ui?.notice;
 }
 function cancellableDelay(signal, milliseconds) {
   signal.throwIfAborted();
@@ -123,9 +140,9 @@ function applyOutputCeiling(limits) {
 async function stream(messages, view, signal, settings, interaction) {
   const started = performance.now(); let first = null, text = '', reasoning = '', finish = null, usage = null; const calls = new Map(); let done = false;
   const payload = {model, messages: messages.map(({reasoning_content, ...message}) => message), stream: true,
-    stream_options: {include_usage: true}, max_completion_tokens: settings.budget,
-    enable_thinking: settings.thinking, thinking_language: settings.thinkingLanguage};
-  if (settings.tools) Object.assign(payload, {tools, parallel_tool_calls: false});
+    stream_options: {include_usage: true}, max_completion_tokens: settings.budget};
+  if (thinkingParametersAvailable) Object.assign(payload, {enable_thinking: settings.thinking, thinking_language: settings.thinkingLanguage});
+  if (settings.tools && toolsAvailable) Object.assign(payload, {tools, parallel_tool_calls: false});
   const response = await completionResponse(payload, signal);
   const reader = response.body.getReader(), decoder = new TextDecoder(); let buffer = '';
   function line(raw) {

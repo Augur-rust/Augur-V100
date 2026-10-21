@@ -42,6 +42,7 @@ pub fn effective_description()->Result<Value,Box<dyn std::error::Error>> {
     if positions>0 && mode!=Mode::Thinking {return Err("probability prefix requires target sampling".into());}
     if block && positions!=7 {return Err("block verification requires all7 probability proposals".into());}
     let mut v=mode.description();
+    if mode==Mode::Thinking {v["seed"]=json!(process_seed()?);v["seed_scope"]=json!("process");}
     if positions>0 {
         v["verification"]=json!(if block {S::BLOCK_CONTRACT} else {S::CONTRACT});
         v["probability_prefix_positions"]=json!(positions);
@@ -49,6 +50,26 @@ pub fn effective_description()->Result<Value,Box<dyn std::error::Error>> {
         v["rng"]=json!("splitmix64_absolute_position_independent_purpose_domains_v1");
     }
     Ok(v)
+}
+/// One immutable seed per native owner. Invalid values fail before sampling.
+fn parse_seed(value:Option<&str>)->Result<u64,&'static str> {
+    match value {
+        None=>Ok(0),
+        Some(v) if !v.is_empty() && v.bytes().all(|b|b.is_ascii_digit())=>v.parse().map_err(|_|"AUGUR_SAMPLING_SEED must be a u64 decimal integer"),
+        _=>Err("AUGUR_SAMPLING_SEED must be a u64 decimal integer"),
+    }
+}
+pub(crate) fn process_seed()->Result<u64,&'static str> {
+    static SEED:std::sync::OnceLock<Result<u64,&'static str>>=std::sync::OnceLock::new();
+    *SEED.get_or_init(||match std::env::var("AUGUR_SAMPLING_SEED") {
+        Ok(v)=>parse_seed(Some(&v)),Err(std::env::VarError::NotPresent)=>parse_seed(None),
+        _=>Err("AUGUR_SAMPLING_SEED must be a u64 decimal integer"),
+    })
+}
+/// XOR the run seed into each purpose domain; seed=0 exactly retains the old stream.
+pub(crate) fn uniform_seeded(seed:u64,domain:u64,position:usize)->f64 {uniform(seed^domain,position)}
+pub(crate) fn process_uniform(domain:u64,position:usize)->Result<f64,&'static str> {
+    Ok(uniform_seeded(process_seed()?,domain,position))
 }
 #[derive(Clone,Copy,Debug,PartialEq,Eq)]
 pub(crate) struct Selection {pub id:u32,pub top1:u32}
@@ -93,6 +114,17 @@ mod tests {
         for i in 0..10000 {let u=(i as f64+0.5)/10000.0;let target=if u<0.2 {0} else if u<0.7 {1} else {2};
             let draft=1;let output=if draft==target {accepted+=1;draft} else {target};counts[output]+=1;}
         assert_eq!(counts,[2000,5000,3000]);assert_eq!(accepted,5000);
+    }
+    #[test] fn seeds_are_validated_and_change_all_purpose_streams() {
+        assert_eq!(parse_seed(None),Ok(0));assert_eq!(parse_seed(Some("18446744073709551615")),Ok(u64::MAX));
+        for value in ["","-1","+1","1.0","true","18446744073709551616"," 1"] {assert!(parse_seed(Some(value)).is_err());}
+        let domains=[0,crate::augur_speculative_sampling::PROPOSAL,crate::augur_speculative_sampling::ACCEPT,
+            crate::augur_speculative_sampling::CORRECTION,crate::augur_speculative_sampling::BONUS];
+        for domain in domains {for position in [0,512,32760,262000] {
+            assert_eq!(uniform_seeded(0,domain,position),uniform(domain,position));
+            assert_ne!(uniform_seeded(1,domain,position),uniform_seeded(2,domain,position));
+            assert_ne!(uniform_seeded(0,domain,position),uniform_seeded(1,domain,position));
+        }}
     }
     #[test] fn position_rng_survives_speculation_rollback_and_restore() {
         let serial:Vec<_>=(900..932).map(|p|uniform(0,p)).collect();
