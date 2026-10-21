@@ -44,6 +44,13 @@ class BridgeUpdate(unittest.TestCase):
         p=self.overlay/'deployment-manifest.json';r=json.loads(p.read_bytes());r['overlay_files_sha256']['../private']='0'*64;p.write_text(json.dumps(r))
         with self.assertRaisesRegex(ValueError,'non-public'):W.package(self.base,self.overlay,self.root/'bad','v0.0.2-alpha','a'*40)
 
+    def test_accepts_verified_windows_manifest_separators(self):
+        p=self.overlay/'deployment-manifest.json';r=json.loads(p.read_bytes())
+        key='source/scripts/augur_portable.py'
+        r['overlay_files_sha256'][key.replace('/', '\\')]=r['overlay_files_sha256'].pop(key)
+        p.write_text(json.dumps(r));record=self.package()
+        self.assertIn('bridge/source/scripts/augur_portable.py',record['files'])
+
     def test_safe_names(self):
         for name in ['../x','C:/x','/x','a//b','a\\b','']:
             with self.subTest(name=name):self.assertFalse(E.safe_name(name))

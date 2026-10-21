@@ -43,7 +43,12 @@ def package(base, overlay, out, version, source_commit):
             raise ValueError('unsafe original package member')
         checked_copy(base / name, out / 'native-base' / name, digest)
     checked_copy(base / 'windows-distribution.json', out / 'native-base/windows-distribution.json', sha(base / 'windows-distribution.json'))
-    for name, digest in deployment['overlay_files_sha256'].items():
+    overlay_names = set()
+    for original_name, digest in deployment['overlay_files_sha256'].items():
+        name = original_name.replace('\\', '/')
+        if name in overlay_names:
+            raise ValueError('duplicate normalized overlay member: ' + name)
+        overlay_names.add(name)
         if not E.safe_name(name) or not name.startswith(('source/scripts/', 'source/model-cards/')):
             raise ValueError('non-public overlay member: ' + name)
         if not (overlay / name).resolve().is_relative_to(overlay):
